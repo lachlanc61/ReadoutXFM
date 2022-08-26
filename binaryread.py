@@ -118,6 +118,9 @@ with open(f, mode='rb') as file: # rb = read binary
     j=0
     kv=np.zeros((NCHAN), dtype=float)
     counts=np.zeros((NCHAN), dtype=int)
+    #read spectrum from remainder of pixel
+    #   NB: pixels are compressed, bins with 0 counts dont exist
+    #       NCHAN might not work... seems to though? need to look at this some more
     for i in np.arange(headerlen+2+PXHEADERLEN, headerlen+2+PXHEADERLEN+NCHAN, 4):
         kv[j]=0.01*(struct.unpack("<H", stream[i:i+2])[0])
         counts[j]=int(struct.unpack("<H", stream[i+2:i+4])[0])
