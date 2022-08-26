@@ -34,6 +34,11 @@ mine=1.04
 maxe=17.44
 sds=9
 
+istart=1
+istep=1
+imax=20
+
+ff="n20.csv"
 #-------------------------------------
 #FUNCTIONS
 #-----------------------------------
@@ -100,10 +105,6 @@ ax.set_xlabel('energy (keV)')
 #istep=1
 #imax=10
 
-istart=1
-istep=5000
-imax=64503
-
 npx=(imax-istart)/istep
 #istep=5000
 #imax=64503
@@ -114,8 +115,6 @@ rvals=np.arange(npx)
 gvals=np.arange(npx)
 bvals=np.arange(npx)
 ysum=np.arange(npx)
-
-ff="temp.csv"
 
 #split filenames / paths
 f = os.path.join(wdir, ff)
