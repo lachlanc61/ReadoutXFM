@@ -5,6 +5,7 @@ import matplotlib.cm as cmx
 import cv2
 import os
 import glob
+import struct 
 from decimal import *
 from scipy.optimize import curve_fit
 
@@ -15,12 +16,18 @@ from scipy.optimize import curve_fit
 #global variables
 FTYPE=".GeoPIXE"    #valid: ".GeoPIXE"
 DEBUG=False     #debug flag 
+PXHEADERLEN=16  #pixel header size
+PXFLAG="DP"
+NCHAN=4096
+CHARENCODE = 'utf-8'
 
 #workdir and inputfile
 wdirname='data'     #working directory relative to script
 odirname='out'      #output directory relative to script
 infile = "leaf2_overview.GeoPIXE"    #assign input file
                                 #   only used if reading .geo
+
+detid="A"
 
 #figure params
 colourmap='Set1'    #colourmap for figure
@@ -50,28 +57,17 @@ odir=os.path.join(spath,odirname)
 print("script:", script)
 print("script path:", spath)
 print("data path:", wdir)
-
-#initialise plot defaults
-plt.rc('font', size=smallfont)          # controls default text sizes
-plt.rc('axes', titlesize=smallfont)     # fontsize of the axes title
-plt.rc('axes', labelsize=medfont)       # fontsize of the x and y labels
-plt.rc('xtick', labelsize=smallfont)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=smallfont)    # fontsize of the tick labels
-plt.rc('legend', fontsize=smallfont)    # legend fontsize
-plt.rc('figure', titlesize=lgfont)      # fontsize of the figure title
-plt.rc('lines', linewidth=lwidth)
-plt.rcParams['axes.linewidth'] = bwidth
-
+print("---------------")
 #-----------------------------------
 #MAIN START
 #-----------------------------------
+"""
+Read binary with struct
+https://stackoverflow.com/questions/8710456/reading-a-binary-file-with-python
+Read binary as chunks
+https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
+"""
 
-#read in either .avi or .tif files
-#   paired with if/else at beginning of frame-by-frame read
-#   clunky but best I can think of so far
-#       some possibility to have orphaned variables - eg. vidcap doesn't exist if filetype is tif
-
-#if filetype is avi, read frame-by-frame from avi
 if FTYPE == ".GeoPIXE":
     f = os.path.join(wdir,infile)
     fname = os.path.splitext(os.path.basename(f))[0]
@@ -80,6 +76,91 @@ if FTYPE == ".GeoPIXE":
 else: 
     print(f'FATAL: filetype {FTYPE} not recognised')
     exit()
+
+print("---------------")
+
+with open(f, mode='rb') as file: # rb = read binary
+    
+    stream = file.read()    #NB. to read in chunks, add chunk size as read(SIZE)
+    print("stream length in bytes ",len(stream))
+
+    print("first two bytes: ",stream[:2])
+
+    #struct unpack outputs tuple, want int
+    #get header length from first two bytes
+    #   read as little-endian uint16 "<H"
+    headerlen = int(struct.unpack("<H", stream[:2])[0])
+    print(f"header length: {headerlen}")
+
+    #occasionally, files might be missing the header
+    #   when this happens, the first bytes are "DP" - denoting the start of a pixel record
+    #   therefore if we get 20550 (="DP" as <uint16), header is missing
+    if headerlen == 20550:
+        print("WARNING: no header found")
+        headerlen=0
+
+#   look for pixel start flag "DP" at first position after header:
+    #   unpack first two bytes after header as char
+    pxflag=struct.unpack("cc", stream[headerlen+2:headerlen+4])[:]
+    #   use join to merge into string
+    pxflag="".join([pxflag[0].decode(CHARENCODE),pxflag[1].decode(CHARENCODE)])
+    #   check if string is "DP" - if not, fail
+    if pxflag != PXFLAG:
+        print(f"ERROR: pixel flag 'DP' not found at byte {headerlen+2}")
+        exit()
+    else:
+        print(f"pixel at byte {headerlen+2}")
+
+    print("ints: ",stream[headerlen+14:headerlen+20])
+    print(stream[headerlen+14:headerlen+15])
+
+    #initialise spectrum arrays
+    j=0
+    kv=np.zeros((NCHAN), dtype=float)
+    counts=np.zeros((NCHAN), dtype=int)
+    for i in np.arange(headerlen+2+PXHEADERLEN, headerlen+2+PXHEADERLEN+NCHAN, 4):
+        kv[j]=0.01*(struct.unpack("<H", stream[i:i+2])[0])
+        counts[j]=int(struct.unpack("<H", stream[i+2:i+4])[0])
+        print(round(kv[j],2),counts[j])
+    
+    """"
+    := c + pixHeaderLength; i+4 < pixelDataEnd; {
+                        channel := binary.LittleEndian.Uint16(bytes[i : i+2])
+                        count := binary.LittleEndian.Uint16(bytes[i+2 : i+4])
+    """
+exit()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 success=True
 steps=np.arange(10)
