@@ -115,33 +115,28 @@ with open(f, mode='rb') as file: # rb = read binary
         print("WARNING: no header found")
         headerlen=0
 
-    recidx=headerlen+2
+    pxstart=headerlen
+    idx=pxstart+2
+
 #   look for pixel start flag "DP" at first position after header:
     #   unpack first two bytes after header as char
-    pxflag=struct.unpack("cc", stream[recidx:recidx+2])[:]
+    pxflag=struct.unpack("cc", stream[idx:idx+2])[:]
     #   use join to merge into string
     pxflag="".join([pxflag[0].decode(CHARENCODE),pxflag[1].decode(CHARENCODE)])
     #   check if string is "DP" - if not, fail
     if pxflag != PXFLAG:
-        print(f"ERROR: pixel flag 'DP' not found at byte {recidx}")
+        print(f"ERROR: pixel flag 'DP' not found at byte {idx}")
         exit()
     else:
-        print(f"pixel at byte {recidx}")
+        print(f"pixel at byte {idx}")
 
     #   header format:
     #   DP  len     X       Y       det     dt  DATA
     #   2c  4i     2i       2i      2i      4f
 
+    idx=idx+2   #move to start of pixel header
 
-    testarr=np.arange(0,100)
-    print(testarr)
-    print(testarr[2:4])
-    print(testarr[4:6])    
-
-
-    print("ints: ",stream[recidx:recidx+17])
-
-    idx=recidx+2
+    #read each header field and step idx to end of field
     pxlen, idx=binunpack(stream,idx,"<I")
     xcoord, idx=binunpack(stream,idx,"<H")
     ycoord, idx=binunpack(stream,idx,"<H")
@@ -154,38 +149,8 @@ with open(f, mode='rb') as file: # rb = read binary
     print(det)
     print(dt)
 
-    exit()
-
-
-    frame=stream[recidx+2:recidx+6]
-    print("frame", frame)
-    pxlen = struct.unpack("<I", frame)[0]
-    print(pxlen)
-
-
-
-    frame=stream[recidx+6:recidx+8]
-    print("frame", frame)
-    xcoord = struct.unpack("<H", frame)[0]
-    print(xcoord)
-
-    frame=stream[recidx+8:recidx+10]
-    print("frame", frame)
-    ycoord = struct.unpack("<H", frame)[0]
-    print(ycoord)
-
-    frame=stream[recidx+10:recidx+12]
-    print("frame", frame)
-    det = struct.unpack("<H", frame)[0]
-    print(det)
-
-    frame=stream[recidx+12:recidx+16]
-    print("frame", frame)
-    dt = struct.unpack("<f", frame)[0]
-    print(dt)
-
-
-    exit()
+    print("datastart: ",stream[idx:idx+100])
+    
     #initialise spectrum arrays
     j=0
     kv=np.zeros((NCHAN), dtype=float)
@@ -193,11 +158,14 @@ with open(f, mode='rb') as file: # rb = read binary
     #read spectrum from remainder of pixel
     #   NB: pixels are compressed, bins with 0 counts dont exist
     #       NCHAN might not work... seems to though? need to look at this some more
-    for i in np.arange(recidx+PXHEADERLEN, recidx+PXHEADERLEN+NCHAN, 4):
-        kv[j]=0.01*(struct.unpack("<H", stream[i:i+2])[0])
+    for i in np.arange(idx, idx+(pxlen-PXHEADERLEN), 4):
+        kv[j]=(struct.unpack("<H", stream[i:i+2])[0])
         counts[j]=int(struct.unpack("<H", stream[i+2:i+4])[0])
         print(round(kv[j],2),counts[j])
-    
+    idx=idx+(pxlen-PXHEADERLEN)
+    print("next bytes: ",stream[idx:idx+10])
+
+
     """"
     := c + pixHeaderLength; i+4 < pixelDataEnd; {
                         channel := binary.LittleEndian.Uint16(bytes[i : i+2])
