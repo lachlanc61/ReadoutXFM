@@ -48,9 +48,9 @@ bwidth = 1  #default border width
 def binunpack(stream, idx, sformat):
     if sformat == "<H":
         nbytes=2
-    elif sformat == "<I":
-        nbytes=4
     elif sformat == "<f":
+        nbytes=4
+    elif sformat == "<I":
         nbytes=4
     else:
         print(f"ERROR: {sformat} not recognised by local function binunpack")
@@ -115,8 +115,9 @@ with open(f, mode='rb') as file: # rb = read binary
         print("WARNING: no header found")
         headerlen=0
 
-    pxstart=headerlen
-    idx=pxstart+2
+    pxstart=headerlen+2
+
+    idx=pxstart
 
 #   look for pixel start flag "DP" at first position after header:
     #   unpack first two bytes after header as char
@@ -149,8 +150,18 @@ with open(f, mode='rb') as file: # rb = read binary
     print(det)
     print(dt)
 
-    print("datastart: ",stream[idx:idx+100])
-    
+    j=0
+    kv=np.zeros((pxlen-PXHEADERLEN), dtype=float)
+    counts=np.zeros((pxlen-PXHEADERLEN), dtype=int)
+
+    while idx < (pxstart+pxlen):
+        kv[j], idx=binunpack(stream,idx,"<H")
+        counts[j], idx=binunpack(stream,idx,"<H")
+        print(idx,round(kv[j],2),counts[j])
+    print(idx, pxstart+pxlen)
+    print("next bytes: ",stream[idx:idx+10])
+
+    exit()
     #initialise spectrum arrays
     j=0
     kv=np.zeros((NCHAN), dtype=float)
@@ -163,6 +174,7 @@ with open(f, mode='rb') as file: # rb = read binary
         counts[j]=int(struct.unpack("<H", stream[i+2:i+4])[0])
         print(round(kv[j],2),counts[j])
     idx=idx+(pxlen-PXHEADERLEN)
+    print(idx, pxstart+pxlen)
     print("next bytes: ",stream[idx:idx+10])
 
 
