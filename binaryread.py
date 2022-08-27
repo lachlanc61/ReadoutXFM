@@ -61,6 +61,74 @@ def binunpack(stream, idx, sformat):
     idx=idx+nbytes
     return(retval, idx)    
 
+
+
+def readpxrecord(pxstart):
+    """"
+    Pixel Record
+    Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
+        1.	Record type pair  "DP", Length of pixel data record in bytes ( 4 byte int)
+        2.	X                          Horizontal pixel index (2 byte int)
+        3.	Y                          Vertical pixel index (2 byte int)
+        4.	Detector               Data in this record is for this detector (2 byte int)
+        5.	Deadtime             Deadtime for this pixel (4 byte float)
+        6.	Data (for each channel with data up to maximum channel index)
+            a.	Channel     Channel index (0- Max Chan) (2 byte int)
+            b.	Count         Event counts in channel (2 byte int)
+
+    #   concise format:
+    #   DP  len     X       Y       det     dt  DATA
+    #   2c  4i     2i       2i      2i      4f
+    """
+    #assign current position as start of px record
+    idx=pxstart
+
+#   check for pixel start flag "DP" at first position after header:
+
+    #   unpack first two bytes after header as char
+    pxflag=struct.unpack("cc", stream[idx:idx+2])[:]
+    #   use join to merge into string
+    pxflag="".join([pxflag[0].decode(CHARENCODE),pxflag[1].decode(CHARENCODE)])
+
+    #   check if string is "DP" - if not, fail
+    if pxflag != PXFLAG:
+        print(f"ERROR: pixel flag 'DP' not found at byte {idx}")
+        exit()
+    else:
+        print(f"pixel at beginning of record {idx}")
+
+    idx=idx+2   #step over "DP"
+
+    #read each header field and step idx to end of field
+    pxlen, idx=binunpack(stream,idx,"<I")
+    xcoord, idx=binunpack(stream,idx,"<H")
+    ycoord, idx=binunpack(stream,idx,"<H")
+    det, idx=binunpack(stream,idx,"<H")
+    dt, idx=binunpack(stream,idx,"<f")
+
+    #print header fields
+    if (DEBUG): 
+        print(pxlen)
+        print(xcoord)
+        print(ycoord)
+        print(det)
+        print(dt)
+
+    #initialise channel index and result arrays
+    j=0
+    chan=np.zeros((pxlen-PXHEADERLEN), dtype=float)
+    counts=np.zeros((pxlen-PXHEADERLEN), dtype=int)
+
+    #iterate until byte index passes pxlen
+    #pull channel, count pairs
+    while idx < (pxstart+pxlen):
+        chan[j], idx=binunpack(stream,idx,"<H")
+        counts[j], idx=binunpack(stream,idx,"<H")
+        print(idx,round(chan[j],2),counts[j])
+    if (DEBUG): print(idx, pxstart+pxlen)
+    if (DEBUG): print("next bytes: ",stream[idx:idx+10])
+
+
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
@@ -83,6 +151,7 @@ https://stackoverflow.com/questions/8710456/reading-a-binary-file-with-python
 Read binary as chunks
 https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
 """
+
 
 if FTYPE == ".GeoPIXE":
     f = os.path.join(wdir,infile)
@@ -115,88 +184,8 @@ with open(f, mode='rb') as file: # rb = read binary
         print("WARNING: no header found")
         headerlen=0
 
-    pxstart=headerlen+2
+    readpxrecord(headerlen+2)
 
-    idx=pxstart
-
-#   look for pixel start flag "DP" at first position after header:
-    #   unpack first two bytes after header as char
-    pxflag=struct.unpack("cc", stream[idx:idx+2])[:]
-    #   use join to merge into string
-    pxflag="".join([pxflag[0].decode(CHARENCODE),pxflag[1].decode(CHARENCODE)])
-    #   check if string is "DP" - if not, fail
-    if pxflag != PXFLAG:
-        print(f"ERROR: pixel flag 'DP' not found at byte {idx}")
-        exit()
-    else:
-        print(f"pixel at byte {idx}")
-
-    #   header format:
-    #   DP  len     X       Y       det     dt  DATA
-    #   2c  4i     2i       2i      2i      4f
-
-    idx=idx+2   #move to start of pixel header
-
-    #read each header field and step idx to end of field
-    pxlen, idx=binunpack(stream,idx,"<I")
-    xcoord, idx=binunpack(stream,idx,"<H")
-    ycoord, idx=binunpack(stream,idx,"<H")
-    det, idx=binunpack(stream,idx,"<H")
-    dt, idx=binunpack(stream,idx,"<f")
-
-    print(pxlen)
-    print(xcoord)
-    print(ycoord)
-    print(det)
-    print(dt)
-
-    j=0
-    kv=np.zeros((pxlen-PXHEADERLEN), dtype=float)
-    counts=np.zeros((pxlen-PXHEADERLEN), dtype=int)
-
-    while idx < (pxstart+pxlen):
-        kv[j], idx=binunpack(stream,idx,"<H")
-        counts[j], idx=binunpack(stream,idx,"<H")
-        print(idx,round(kv[j],2),counts[j])
-    print(idx, pxstart+pxlen)
-    print("next bytes: ",stream[idx:idx+10])
-
-    exit()
-    #initialise spectrum arrays
-    j=0
-    kv=np.zeros((NCHAN), dtype=float)
-    counts=np.zeros((NCHAN), dtype=int)
-    #read spectrum from remainder of pixel
-    #   NB: pixels are compressed, bins with 0 counts dont exist
-    #       NCHAN might not work... seems to though? need to look at this some more
-    for i in np.arange(idx, idx+(pxlen-PXHEADERLEN), 4):
-        kv[j]=(struct.unpack("<H", stream[i:i+2])[0])
-        counts[j]=int(struct.unpack("<H", stream[i+2:i+4])[0])
-        print(round(kv[j],2),counts[j])
-    idx=idx+(pxlen-PXHEADERLEN)
-    print(idx, pxstart+pxlen)
-    print("next bytes: ",stream[idx:idx+10])
-
-
-    """"
-    := c + pixHeaderLength; i+4 < pixelDataEnd; {
-                        channel := binary.LittleEndian.Uint16(bytes[i : i+2])
-                        count := binary.LittleEndian.Uint16(bytes[i+2 : i+4])
-
-    Pixel Record
-    Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
-        1.	Record type pair  "DP", Length of pixel data record in bytes ( 4 byte int)
-        2.	X                          Horizontal pixel index (2 byte int)
-        3.	Y                          Vertical pixel index (2 byte int)
-        4.	Detector               Data in this record is for this detector (2 byte int)
-        5.	Deadtime             Deadtime for this pixel (4 byte float)
-        6.	Data (for each channel with data up to maximum channel index)
-            a.	Channel     Channel index (0- Max Chan) (2 byte int)
-            b.	Count         Event counts in channel (2 byte int)
-
-
-
-    """
 exit()
 
 
