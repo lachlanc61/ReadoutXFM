@@ -8,7 +8,7 @@ import glob
 import struct 
 from decimal import *
 from scipy.optimize import curve_fit
-
+from src.utils import *
 
 #-----------------------------------
 #USER MODIFIABLE VARIABLES
@@ -45,6 +45,7 @@ bwidth = 1  #default border width
 #FUNCTIONS
 #-----------------------------------
 
+
 def binunpack(stream, idx, sformat):
     if sformat == "<H":
         nbytes=2
@@ -60,8 +61,6 @@ def binunpack(stream, idx, sformat):
     retval = struct.unpack(sformat, stream[idx:idx+nbytes])[0]
     idx=idx+nbytes
     return(retval, idx)    
-
-
 
 def readpxrecord(pxstart):
     """"
@@ -116,18 +115,23 @@ def readpxrecord(pxstart):
 
     #initialise channel index and result arrays
     j=0
-    chan=np.zeros((pxlen-PXHEADERLEN), dtype=float)
-    counts=np.zeros((pxlen-PXHEADERLEN), dtype=int)
+    chan=np.zeros(int((pxlen-PXHEADERLEN)/4), dtype=int)
+    counts=np.zeros(int((pxlen-PXHEADERLEN)/4), dtype=int)
+    #       4 = no. bytes in each x,y pair
+    #         = 2x2 bytes each 
 
     #iterate until byte index passes pxlen
     #pull channel, count pairs
     while idx < (pxstart+pxlen):
+    #while idx < 2000:
         chan[j], idx=binunpack(stream,idx,"<H")
+        #chan[j]=int(chan[j])
         counts[j], idx=binunpack(stream,idx,"<H")
-        print(idx,round(chan[j],2),counts[j])
-    if (DEBUG): print(idx, pxstart+pxlen)
-    if (DEBUG): print("next bytes: ",stream[idx:idx+10])
-
+        if (DEBUG): print(idx,chan[j],counts[j])
+        if (DEBUG): print(idx, pxstart+pxlen)
+        if (DEBUG): print("next bytes: ",stream[idx:idx+10])
+        j=j+1
+    return(chan, counts, pxlen, xcoord, ycoord, det, dt)
 
 #-----------------------------------
 #INITIALISE
@@ -184,11 +188,11 @@ with open(f, mode='rb') as file: # rb = read binary
         print("WARNING: no header found")
         headerlen=0
 
-    readpxrecord(headerlen+2)
+    chan, counts, pxlen, xcoord, ycoord, det, dt = readpxrecord(headerlen+2)
+    print(chan[:20], counts[:20])
+    print("pixel length:",pxlen)
 
 exit()
-
-
 
 
 
