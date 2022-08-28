@@ -20,6 +20,8 @@ PXHEADERLEN=16  #pixel header size
 PXFLAG="DP"
 NCHAN=4096
 CHARENCODE = 'utf-8'
+MAPX=128
+MAPY=68
 
 #workdir and inputfile
 wdirname='data'     #working directory relative to script
@@ -129,9 +131,9 @@ def readpxrecord(pxstart):
         counts[j], idx=binunpack(stream,idx,"<H")
         if (DEBUG): print(idx,chan[j],counts[j])
         if (DEBUG): print(idx, pxstart+pxlen)
-        if (DEBUG): print("next bytes: ",stream[idx:idx+10])
         j=j+1
-    return(chan, counts, pxlen, xcoord, ycoord, det, dt)
+    if (DEBUG): print("following bytes: ",stream[idx:idx+10])
+    return(chan, counts, pxlen, xcoord, ycoord, det, dt, idx)
 
 #-----------------------------------
 #INITIALISE
@@ -146,6 +148,30 @@ print("script:", script)
 print("script path:", spath)
 print("data path:", wdir)
 print("---------------")
+
+#plot defaults
+plt.rc('font', size=smallfont)          # controls default text sizes
+plt.rc('axes', titlesize=smallfont)     # fontsize of the axes title
+plt.rc('axes', labelsize=medfont)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=smallfont)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=smallfont)    # fontsize of the tick labels
+plt.rc('legend', fontsize=smallfont)    # legend fontsize
+plt.rc('figure', titlesize=lgfont)  # fontsize of the figure title
+plt.rc('lines', linewidth=lwidth)
+plt.rcParams['axes.linewidth'] = bwidth
+
+
+fig=plt.figure()
+ax=fig.add_subplot(111)
+ax.set_yscale('log')
+
+ax.set_ylabel('intensity (counts)')
+ax.set_xlim(0,25)
+
+#ax.set_xscale('log')
+ax.set_xlim(0,NCHAN/1.5)
+ax.set_xlabel('energy (keV)')
+
 #-----------------------------------
 #MAIN START
 #-----------------------------------
@@ -187,13 +213,53 @@ with open(f, mode='rb') as file: # rb = read binary
     if headerlen == 20550:
         print("WARNING: no header found")
         headerlen=0
-
-    chan, counts, pxlen, xcoord, ycoord, det, dt = readpxrecord(headerlen+2)
     
+    #assign starting index 
+    idx=headerlen+2 #legnth of header + 2 bytes
 
-    chan, counts = gapfill(chan,counts, NCHAN)
-    print(chan[40:60], counts[40:60])
-    print("pixel length:",pxlen)    
+    #initialise pixel param arrays
+    pxlen=np.zeros(MAPX*MAPY)
+    xidx=np.zeros(MAPX*MAPY)
+    yidx=np.zeros(MAPX*MAPY)
+    det=np.zeros(MAPX*MAPY)
+    dt=np.zeros(MAPX*MAPY)
+    
+    i=0 #pixel counter
+    while idx <= len(stream):
+        #read pixel record
+        #   output spectrum, all header params, finishing index
+        chan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(idx)
+        #fill gaps in spectrum 
+        #   (ie. all chans where y=0 are missing, add them back)
+        chan, counts = gapfill(chan,counts, NCHAN)
+
+        #pixel outputs:
+        ax.plot(chan, counts, color = "red", label=i)
+        print(chan[40:60], counts[40:60])
+        print("index at end of record",idx)
+
+        if idx > 200000:
+            print("ending at:", idx)
+            idx=72222500
+        i+=1
+
+
+    #output result arrays    
+    print("pixel lengths")
+    print(pxlen[:i])
+    print("xidx")
+    print(xidx[:i])
+    print("yidx")
+    print(yidx[:i])
+    print("detector")
+    print(det[:i])
+    print("dt")
+    print(dt[:i])    
+    #plotting
+
+    plt.show()
+
+print("CLEAN EXIT")
 exit()
 
 
