@@ -1,6 +1,11 @@
 import time
 import numpy as np
+from scipy.stats import norm
 
+def normgauss(x, mu, sig1, amp):
+    g1=norm.pdf(x, mu, sig1)
+    g1n=np.divide(g1,max(g1))
+    return np.multiply(g1n, amp)
 
 def timed(f):
   """

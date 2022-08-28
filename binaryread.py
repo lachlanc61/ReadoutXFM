@@ -10,7 +10,14 @@ import time
 from decimal import *
 from scipy.optimize import curve_fit
 from src.utils import *
+"""
+SPEED
+reading only: 0.00014
+14 sec for 8700 records
 
+
+
+"""
 #-----------------------------------
 #USER MODIFIABLE VARIABLES
 #-----------------------------------
@@ -20,6 +27,7 @@ DEBUG=False     #debug flag
 PXHEADERLEN=16  #pixel header size
 PXFLAG="DP"
 NCHAN=4096
+ESTEP=0.01
 CHARENCODE = 'utf-8'
 MAPX=128
 MAPY=68
@@ -31,6 +39,14 @@ infile = "leaf2_overview.GeoPIXE"    #assign input file
                                 #   only used if reading .geo
 
 detid="A"
+
+#colour-related variables
+mine=1.04   #minimum energy of interest
+minxe=-5    #extended minimum x for ir
+elastic=17.44  #energy of tube Ka
+maxe=30  #maximum energy of interest
+sds=9   #standard deviations
+
 
 #figure params
 colourmap='Set1'    #colourmap for figure
@@ -82,10 +98,7 @@ def readpxrecord(idx, stream):
     #   DP  len     X       Y       det     dt  DATA
     #   2c  4i     2i       2i      2i      4f
     """
-    #assign current position as start of px record
     pxstart=idx
-    
-
 #   check for pixel start flag "DP" at first position after header:
     #   unpack first two bytes after header as char
     pxflag=struct.unpack("cc", stream[idx:idx+2])[:]
@@ -100,7 +113,7 @@ def readpxrecord(idx, stream):
         print(f"found pixel at: {idx}")
 
     idx=idx+2   #step over "DP"
-
+    if (DEBUG): print(f"next bytes at {idx}: {stream[idx:idx+PXHEADERLEN]}")
     #read each header field and step idx to end of field
     pxlen, idx=binunpack(stream,idx,"<I")
     xcoord, idx=binunpack(stream,idx,"<H")
@@ -110,11 +123,11 @@ def readpxrecord(idx, stream):
 
     #print header fields
     if (DEBUG): 
-        print(pxlen)
-        print(xcoord)
-        print(ycoord)
-        print(det)
-        print(dt)
+        print("PXLEN: ",pxlen)
+        print("XCOORD: ",xcoord)
+        print("YCOORD: ",ycoord)
+        print("DET: ",det)
+        print("DT: ",dt)
 
     #initialise channel index and result arrays
     j=0
@@ -126,15 +139,55 @@ def readpxrecord(idx, stream):
     #iterate until byte index passes pxlen
     #pull channel, count pairs
     while idx < (pxstart+pxlen):
-    #while idx < 2000:
+   #while idx < 2000:
+        if (DEBUG): print(f"next bytes at {idx}: {stream[idx:idx+8]}")
         chan[j], idx=binunpack(stream,idx,"<H")
-        #chan[j]=int(chan[j])
         counts[j], idx=binunpack(stream,idx,"<H")
-        if (DEBUG): print(idx,chan[j],counts[j])
-        if (DEBUG): print(idx, pxstart+pxlen)
+        if (DEBUG): print(f"idx {idx} x {chan[j]} y {counts[j]}")
+        
+    #    if (DEBUG): print(f"idx {idx} / {pxstart+pxlen}")
         j=j+1
     if (DEBUG): print(f"following bytes at {idx}: {stream[idx:idx+10]}")
     return(chan, counts, pxlen, xcoord, ycoord, det, dt, idx)
+
+
+
+def spectorgb(e, y, i):
+    # e=spectra[:,0]
+
+    #max of ir curve is outside e
+    #need to extend x to -5 to normalise correctly
+    xe=np.arange(-5,0,ESTEP)
+    xe=np.append(xe,e)
+    
+    #create ir gaussian, then truncate back
+    ir=normgauss(xe, irmu, sd, max(y))
+    ir=ir[xzer:]
+
+    #create other gaussians
+    red=normgauss(e, rmu, sd, max(y))
+    green=normgauss(e, gmu, sd, max(y))
+    blue=normgauss(e, bmu, sd, max(y))
+    uv=normgauss(e, uvmu, sd, max(y))
+
+    #initialise channel outputs
+    rch=np.zeros(len(e))
+    gch=np.zeros(len(e))
+    bch=np.zeros(len(e))
+
+    #calculate RGB matrices
+    #step through spectrum by energy j
+    #   multiplying y by gaussian value at that j
+    for j in np.arange(len(e)):
+        rch[j]=y[j]*(red[j]+uv[j])
+        gch[j]=y[j]*(green[j])
+        bch[j]=y[j]*(blue[j]+ir[j])
+    #calculate average per channel
+    rret=np.sum(rch)/len(e)
+    gret=np.sum(gch)/len(e)
+    bret=np.sum(bch)/len(e)
+    yret=np.sum(y)
+    return(rret,gret,bret,yret)
 
 #-----------------------------------
 #INITIALISE
@@ -167,15 +220,28 @@ ax=fig.add_subplot(111)
 ax.set_yscale('log')
 
 ax.set_ylabel('intensity (counts)')
-ax.set_xlim(0,25)
+#ax.set_ylim(0,50)
 
 #ax.set_xscale('log')
-ax.set_xlim(0,NCHAN/1.5)
+ax.set_xlim(0,40)
 ax.set_xlabel('energy (keV)')
 
 
 starttime = time.time() #initialise timer
 totalpx=MAPX*MAPY   # map size
+
+#ncols=len(steps)+2
+ncols=5
+
+xzer=np.floor(-(minxe/ESTEP)).astype(int)
+sd=(maxe-mine)/(sds)
+
+irmu=mine-sd*1.5
+rmu=mine+sd*1.5
+gmu=rmu+sd*3
+bmu=maxe-sd*1.5
+uvmu=maxe+sd*1.5
+
 
 #-----------------------------------
 #MAIN START
@@ -230,6 +296,13 @@ with open(f, mode='rb') as file: # rb = read binary
     det=np.zeros(totalpx)
     dt=np.zeros(totalpx)
     
+    #initalise pixel colour arrays
+    rvals=np.zeros(totalpx)
+    gvals=np.zeros(totalpx)
+    bvals=np.zeros(totalpx)
+    totalcounts=np.zeros(totalpx)
+
+
     i=0 #pixel counter
     while idx < streamlen:
         #check index against expected map dimensions
@@ -237,22 +310,28 @@ with open(f, mode='rb') as file: # rb = read binary
         #read pixel record
         #   output spectrum, all header params, finishing index
         chan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(idx, stream)
+
         #fill gaps in spectrum 
         #   (ie. all chans where y=0 are missing, add them back)
         chan, counts = gapfill(chan,counts, NCHAN)
+        #convert chan to energy
+        #      easier to do this after gapfill so dict doesn't have to deal with floats
+        energy=chan*ESTEP
 
+        rvals[i], bvals[i], gvals[i], totalcounts[i] = spectorgb(energy, counts, i)
+        #warn if i is unexpectedly high - would mostly happen if header is wrong
         if i > totalpx:
             print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
 
         #pixel outputs:
-#        ax.plot(chan, counts, color = "red", label=i)
-#        print(chan[40:60], counts[40:60])
+       # ax.plot(energy, counts, color = "red", label=i)
 #        print("index at end of record",idx)
 
- #       if idx > 200000:
- #           print("ending at:", idx)
- #           idx=72222500
+        #if idx > 500:
+       #     print("ending at:", idx)
+         #   idx=72222500
         i+=1
+
 
     print("---------------------------")
     print("MAP COMPLETE")
@@ -262,7 +341,7 @@ with open(f, mode='rb') as file: # rb = read binary
     print("pixels expected (X*Y):", totalpx) 
     print("pixels found:", i)
     print(f"total time: {round(runtime,2)} s")
-    print(f"time per pixel: {round((runtime/i),7)} s") 
+    print(f"time per pixel: {round((runtime/i),6)} s") 
     print("---------------------------")
     print("pixel lengths")
     print(pxlen[:i])
@@ -274,9 +353,32 @@ with open(f, mode='rb') as file: # rb = read binary
     print(det[:i])
     print("dt")
     print(dt[:i])    
+
+    print("RED",rvals)
+    print("GREEN",gvals)
+    print("BLUE",bvals)
+    
+    #print(rvals,gvals,bvals,ysum)
+    allch=np.append(rvals,gvals)   
+    allch=np.append(allch,bvals)  
+    chmax=max(allch)
+    #gmax=max(gvals)
+    #bmax=max(bvals)
+    maxcounts=max(totalcounts)
+
+    for i in np.arange(totalpx):
+        rgbscale=totalcounts[i]/maxcounts
+        rvals[i]=rvals[i]*rgbscale/chmax
+        gvals[i]=gvals[i]*rgbscale/chmax
+        bvals[i]=bvals[i]*rgbscale/chmax
+
+    print("RED",rvals)
+    print("GREEN",gvals)
+    print("BLUE",bvals)
+
     #plotting
 
-#    plt.show()
+    plt.show()
 
 print("CLEAN EXIT")
 exit()
