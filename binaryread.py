@@ -6,6 +6,7 @@ import cv2
 import os
 import glob
 import struct 
+import time
 from decimal import *
 from scipy.optimize import curve_fit
 from src.utils import *
@@ -64,7 +65,7 @@ def binunpack(stream, idx, sformat):
     idx=idx+nbytes
     return(retval, idx)    
 
-def readpxrecord(pxstart):
+def readpxrecord(idx, stream):
     """"
     Pixel Record
     Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
@@ -82,10 +83,10 @@ def readpxrecord(pxstart):
     #   2c  4i     2i       2i      2i      4f
     """
     #assign current position as start of px record
-    idx=pxstart
+    pxstart=idx
+    
 
 #   check for pixel start flag "DP" at first position after header:
-
     #   unpack first two bytes after header as char
     pxflag=struct.unpack("cc", stream[idx:idx+2])[:]
     #   use join to merge into string
@@ -132,7 +133,7 @@ def readpxrecord(pxstart):
         if (DEBUG): print(idx,chan[j],counts[j])
         if (DEBUG): print(idx, pxstart+pxlen)
         j=j+1
-    if (DEBUG): print("following bytes: ",stream[idx:idx+10])
+    if (DEBUG): print(f"following bytes at {idx}: {stream[idx:idx+10]}")
     return(chan, counts, pxlen, xcoord, ycoord, det, dt, idx)
 
 #-----------------------------------
@@ -172,6 +173,10 @@ ax.set_xlim(0,25)
 ax.set_xlim(0,NCHAN/1.5)
 ax.set_xlabel('energy (keV)')
 
+
+starttime = time.time() #initialise timer
+totalpx=MAPX*MAPY   # map size
+
 #-----------------------------------
 #MAIN START
 #-----------------------------------
@@ -197,7 +202,8 @@ print("---------------")
 with open(f, mode='rb') as file: # rb = read binary
     
     stream = file.read()    #NB. to read in chunks, add chunk size as read(SIZE)
-    print("stream length in bytes ",len(stream))
+    streamlen=len(stream)
+    print("stream length in bytes ",streamlen)
 
     print("first two bytes: ",stream[:2])
 
@@ -218,33 +224,46 @@ with open(f, mode='rb') as file: # rb = read binary
     idx=headerlen+2 #legnth of header + 2 bytes
 
     #initialise pixel param arrays
-    pxlen=np.zeros(MAPX*MAPY)
-    xidx=np.zeros(MAPX*MAPY)
-    yidx=np.zeros(MAPX*MAPY)
-    det=np.zeros(MAPX*MAPY)
-    dt=np.zeros(MAPX*MAPY)
+    pxlen=np.zeros(totalpx)
+    xidx=np.zeros(totalpx)
+    yidx=np.zeros(totalpx)
+    det=np.zeros(totalpx)
+    dt=np.zeros(totalpx)
     
     i=0 #pixel counter
-    while idx <= len(stream):
+    while idx < streamlen:
+        #check index against expected map dimensions
+
         #read pixel record
         #   output spectrum, all header params, finishing index
-        chan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(idx)
+        chan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(idx, stream)
         #fill gaps in spectrum 
         #   (ie. all chans where y=0 are missing, add them back)
         chan, counts = gapfill(chan,counts, NCHAN)
 
-        #pixel outputs:
-        ax.plot(chan, counts, color = "red", label=i)
-        print(chan[40:60], counts[40:60])
-        print("index at end of record",idx)
+        if i > totalpx:
+            print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
 
-        if idx > 200000:
-            print("ending at:", idx)
-            idx=72222500
+        #pixel outputs:
+#        ax.plot(chan, counts, color = "red", label=i)
+#        print(chan[40:60], counts[40:60])
+#        print("index at end of record",idx)
+
+ #       if idx > 200000:
+ #           print("ending at:", idx)
+ #           idx=72222500
         i+=1
 
-
-    #output result arrays    
+    print("---------------------------")
+    print("MAP COMPLETE")
+    print("---------------------------")
+    #output result arrays   
+    runtime = time.time() - starttime
+    print("pixels expected (X*Y):", totalpx) 
+    print("pixels found:", i)
+    print(f"total time: {round(runtime,2)} s")
+    print(f"time per pixel: {round((runtime/i),7)} s") 
+    print("---------------------------")
     print("pixel lengths")
     print(pxlen[:i])
     print("xidx")
@@ -257,7 +276,7 @@ with open(f, mode='rb') as file: # rb = read binary
     print(dt[:i])    
     #plotting
 
-    plt.show()
+#    plt.show()
 
 print("CLEAN EXIT")
 exit()
