@@ -94,7 +94,7 @@ def readpxrecord(pxstart):
         print(f"ERROR: pixel flag 'DP' not found at byte {idx}")
         exit()
     else:
-        print(f"pixel at beginning of record {idx}")
+        print(f"found pixel at: {idx}")
 
     idx=idx+2   #step over "DP"
 
@@ -189,9 +189,11 @@ with open(f, mode='rb') as file: # rb = read binary
         headerlen=0
 
     chan, counts, pxlen, xcoord, ycoord, det, dt = readpxrecord(headerlen+2)
-    print(chan[:20], counts[:20])
-    print("pixel length:",pxlen)
+    
 
+    chan, counts = gapfill(chan,counts, NCHAN)
+    print(chan[40:60], counts[40:60])
+    print("pixel length:",pxlen)    
 exit()
 
 

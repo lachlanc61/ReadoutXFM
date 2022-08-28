@@ -1,4 +1,5 @@
 import time
+import numpy as np
 
 
 def timed(f):
@@ -31,25 +32,41 @@ def gapfill(x, y, nchannels):
     d = {k: v for k, *v in data}
     return([(i, *d.get(i, (0, 0))) for i in range(nchannels)])
 
-  """
+
+
   d={}
   for k in x:
       for v in y:
           d[k] = [v]
-          y.remove(v)
+#          y.remove(v)
           break 
   return([(i, d.get(i, (0, 0))[0]) for i in range(nchannels)])
+  """
+  d={}
+  j=0
+  for k in x:
+        #print(k)
+        d[k] = (y[j],0)
+        #print("d",k, d[k])
+        j+=1
+  xout=np.zeros(nchannels,dtype=int)
+  yout=np.zeros(nchannels, dtype=int)
+  #print("dict assigned",d)
+  for i in range(nchannels):
+    xout[i]=i
+    #print("i,d--",i,d.get(i, (0, 0))[0])
+    yout[i]=(d.get(i, (0, 0))[0])
+  return xout, yout
+#  return([(i, d.get(i, (0, 0))[0]) for i in range(nchannels)])
 
 
-x=[0,1,2,4]
-y=[1,2,4,2]
-data=[(0,1), (1,2), (2,4), (4,2)]
-print("DATA",data)
+x=np.array([0,1,2,4])
+y=np.array([1,2,4,2])
 
 print(x)
 print(y)
 
 #out, runtime=timed(lambda: gapfill(data, 20))
-out, runtime=timed(lambda: gapfill(x,y, 20))
+out, runtime=timed(lambda: gapfill(x,y, 10))
 print("out",out)
 print("TIME",runtime)
