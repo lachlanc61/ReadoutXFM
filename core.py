@@ -39,9 +39,9 @@ MAPY=68
 wdirname='data'     #working directory relative to script
 odirname='out'      #output directory relative to script
 infile = "leaf2_overview.GeoPIXE"    #assign input file
-                                #   only used if reading .geo
+infile = "geo2.GeoPIXE"    #assign input file
 
-detid="A"
+detid="A"   #detector ID - not needed for single detector maps
 
 #colour-related variables
 mine=1.04   #minimum energy of interest
@@ -66,7 +66,6 @@ bwidth = 1  #default border width
 #-------------------------------------
 #FUNCTIONS
 #-----------------------------------
-
 
 def binunpack(stream, idx, sformat):
     if sformat == "<H":
