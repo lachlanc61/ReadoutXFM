@@ -1,10 +1,11 @@
-Sample Module Repository
-========================
+pilot project to parse spectrum-by-pixel maps from IXRF XFM
 
-This simple project is an example repo for Python projects.
+Currently: 
+parses binary .GeoPIXE files
+extracts pixel parameters
+projects spectra onto simple RGB channels
+displays as RGB
+clustering next...
 
-`Learn more <http://www.kennethreitz.org/essays/repository-structure-and-python>`_.
-
----------------
-
-If you want to learn more about ``setup.py`` files, check out `this repository <https://github.com/kennethreitz/setup.py>`_.
+Run via core.py
+./data has example dataset
