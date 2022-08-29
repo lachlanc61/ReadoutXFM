@@ -9,12 +9,19 @@ from decimal import *
 from scipy.optimize import curve_fit
 from src.utils import *
 """
+Parses spectrum-by-pixel maps from IXRF XFM
+
+- parses binary .GeoPIXE files
+- extracts pixel parameters
+- projects spectra onto simple RGB channels
+- displays as RGB
+
+./data has example dataset
+
 SPEED
                 nrec    ttot    t/rec
 reading only:   8700    14      0.00014 
 colourmap:      8700    67      0.0078
-
-
 
 """
 #-----------------------------------
@@ -190,7 +197,7 @@ def spectorgb(e, y):
         y=np.log(yf, out=np.zeros_like(yf), where=(yf!=0))
 
     #max of ir curve is outside e
-    #need to extend x to -5 to normalise correctly
+    #   need to extend x to -5 to normalise correctly
     xe=np.arange(-5,0,ESTEP)
     xe=np.append(xe,e)
     
@@ -199,6 +206,8 @@ def spectorgb(e, y):
     ir=ir[xzer:]
 
     #create other gaussians
+    #   currently depends on a lot of variables outside function
+    #   should spin this off into own script and put variable definitions there
     red=normgauss(e, rmu, sd, max(y))
     green=normgauss(e, gmu, sd, max(y))
     blue=normgauss(e, bmu, sd, max(y))
@@ -237,7 +246,7 @@ print("script:", script)
 print("script path:", spath)
 print("data path:", wdir)
 print("---------------")
-"""
+
 #plot defaults
 plt.rc('font', size=smallfont)          # controls default text sizes
 plt.rc('axes', titlesize=smallfont)     # fontsize of the axes title
@@ -249,7 +258,8 @@ plt.rc('figure', titlesize=lgfont)  # fontsize of the figure title
 plt.rc('lines', linewidth=lwidth)
 plt.rcParams['axes.linewidth'] = bwidth
 
-
+"""
+plot options for spectra - not currently usede
 fig=plt.figure()
 ax=fig.add_subplot(111)
 """
@@ -267,12 +277,10 @@ ax.set_xlabel('energy (keV)')
 starttime = time.time() #initialise timer
 totalpx=MAPX*MAPY   # map size
 
-#ncols=len(steps)+2
+#initialise RGB split variables
 ncols=5
-
 xzer=np.floor(-(minxe/ESTEP)).astype(int)
 sd=(maxe-mine)/(sds)
-
 irmu=mine-sd*1.5
 rmu=mine+sd*1.5
 gmu=rmu+sd*3
@@ -284,6 +292,7 @@ uvmu=maxe+sd*1.5
 #MAIN START
 #-----------------------------------
 
+#check filetype is recognised - currently only accepts .GeoPIXE
 if FTYPE == ".GeoPIXE":
     f = os.path.join(wdir,infile)
     fname = os.path.splitext(os.path.basename(f))[0]
@@ -341,9 +350,9 @@ with open(f, mode='rb') as file: # rb = read binary
         #fill gaps in spectrum 
         #   (ie. all chans where y=0 are missing, add them back)
         chan, counts = gapfill(chan,counts, NCHAN)
+
         #convert chan to energy
         #      easier to do this after gapfill so dict doesn't have to deal with floats
-        
         energy=chan*ESTEP
         spectra[i,:]=counts
 
