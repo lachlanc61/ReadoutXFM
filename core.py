@@ -49,7 +49,7 @@ minxe=-5    #extended minimum x for ir
 elastic=17.44  #energy of tube Ka
 maxe=30  #maximum energy of interest
 sds=9   #standard deviations
-
+rgblogscale=True    #map RGB as log of intensity
 
 #figure params
 colourmap='Set1'    #colourmap for figure
@@ -63,7 +63,7 @@ lwidth = 1  #default linewidth
 bwidth = 1  #default border width
 
 #debug - skip all but total/skipratio
-skipratio=25
+skipratio=1
 
 #-------------------------------------
 #FUNCTIONS
@@ -75,7 +75,7 @@ def binunpack(stream, idx, sformat):
     takes:
         stream of bytes
         byte index
-        format flag for unpack (currently accepts: <H <f <I)
+        format flag for unpack (currently accepts: <H <f <I )
     returns:
         value in desired format (eg. int, float)
         next byte index
@@ -174,8 +174,20 @@ def readpxrecord(idx, stream):
 
 
 
-def spectorgb(e, y, i):
-    # e=spectra[:,0]
+def spectorgb(e, y):
+    """
+    map spectrum onto R G B channels weighted by series of gaussians
+
+        R G B gaussians at ~1/3 2/3 3/3 across region of interest
+        + two "extended" gaussians at extremes, "ir"(=blue) and "uv"(=red)
+
+        not properly linear, peaks halfway between gaussians currently weighted ~20% lower than centres
+    """
+    if rgblogscale:
+        #convert y to float for log
+        yf=y.astype(float)
+        #log y, excluding 0 values (ie. 0 stays 0)
+        y=np.log(yf, out=np.zeros_like(yf), where=(yf!=0))
 
     #max of ir curve is outside e
     #need to extend x to -5 to normalise correctly
@@ -209,6 +221,7 @@ def spectorgb(e, y, i):
     gret=np.sum(gch)/len(e)
     bret=np.sum(bch)/len(e)
     yret=np.sum(y)
+    
     return(rret,gret,bret,yret)
 
 #-----------------------------------
@@ -334,7 +347,7 @@ with open(f, mode='rb') as file: # rb = read binary
         energy=chan*ESTEP
         spectra[i,:]=counts
 
-        rvals[i], bvals[i], gvals[i], totalcounts[i] = spectorgb(energy, counts, i)
+        rvals[i], bvals[i], gvals[i], totalcounts[i] = spectorgb(energy, counts)
         #warn if i is unexpectedly high - would mostly happen if header is wrong
         if i > totalpx:
             print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
@@ -369,16 +382,11 @@ with open(f, mode='rb') as file: # rb = read binary
     print("dt")
     print(dt[:i])    
 
-    print("RED pre",rvals)
-    print("GREEN pre",gvals)
-    print("BLUE pre",bvals)
-    
-    #print(rvals,gvals,bvals,ysum)
+    print(f'rgb maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
     allch=np.append(rvals,gvals)   
     allch=np.append(allch,bvals)  
     chmax=max(allch)
-    #gmax=max(gvals)
-    #bmax=max(bvals)
+
     maxcounts=max(totalcounts)
 
     for i in np.arange(totalpx):
@@ -387,9 +395,13 @@ with open(f, mode='rb') as file: # rb = read binary
         gvals[i]=gvals[i]*rgbscale/chmax
         bvals[i]=bvals[i]*rgbscale/chmax
 
-    print("RED post",rvals)
-    print("GREEN post",gvals)
-    print("BLUE post",bvals)
+    print(f'scaled maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
+
+    np.savetxt(os.path.join(odir, "pxlen.txt"), pxlen)
+    np.savetxt(os.path.join(odir, "xidx.txt"), xidx)
+    np.savetxt(os.path.join(odir, "yidx.txt"), yidx)
+    np.savetxt(os.path.join(odir, "detector.txt"), det)
+    np.savetxt(os.path.join(odir, "dt.txt"), dt)
 
     np.savetxt(os.path.join(odir, "rvals.txt"), rvals)
     np.savetxt(os.path.join(odir, "gvals.txt"), gvals)
@@ -404,8 +416,6 @@ with open(f, mode='rb') as file: # rb = read binary
     rgbarray[..., 1] = greshape*256
     rgbarray[..., 2] = breshape*256
     
-#    np.savetxt(os.path.join(odir, "rgb.txt"), rgbarray)
-    print(rgbarray.shape)
     plt.imshow(rgbarray)
 
     plt.show()

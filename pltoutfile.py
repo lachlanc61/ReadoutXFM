@@ -30,9 +30,7 @@ print("---------------")
 
 
 fig=plt.figure()
-axr=fig.add_subplot(311)
-axg=fig.add_subplot(312)
-axb=fig.add_subplot(313)
+
 
 #-----------------------------------
 #MAIN START
@@ -45,23 +43,27 @@ print("RED",rvals)
 print("GREEN",gvals)
 print("BLUE",bvals)
 
+print("RED max",np.max(rvals))
+print("GREEN max",np.max(gvals))
+print("BLUE max",np.max(bvals))
 
 rreshape=np.reshape(rvals, (-1, MAPX))
-greshape=np.reshape(rvals, (-1, MAPX))
-breshape=np.reshape(rvals, (-1, MAPX))
+greshape=np.reshape(gvals*(1/np.max(gvals)), (-1, MAPX))
+breshape=np.reshape(bvals*(1/np.max(bvals)), (-1, MAPX))
 
 
 diff=np.subtract(rvals,gvals)
 diff=np.reshape(diff, (-1, MAPX))
+"""
+axr=fig.add_subplot(311)
+axg=fig.add_subplot(312)
+axb=fig.add_subplot(313)
 axr.imshow(rreshape)
 axg.imshow(greshape)
 axb.imshow(breshape)
-
+"""
 print("redvals",rreshape.shape,rreshape[40,230])
 print("bluevals",breshape.shape,breshape[40,230])
-plt.show()
-
-exit()
 
 rgbarray = np.zeros((MAPY,MAPX,3), 'uint8')
 rgbarray[..., 0] = rreshape*256
