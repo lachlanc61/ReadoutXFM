@@ -8,6 +8,8 @@ __pycache__/
 
 # Distribution / packaging
 out
+data
+data/geo2.GeoPIXE
 .Python
 env/
 build/
