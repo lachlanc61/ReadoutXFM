@@ -2,15 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
-import cv2
 import os
-import glob
 import struct 
 import time
 from decimal import *
 from scipy.optimize import curve_fit
 from src.utils import *
-from PIL import Image
 """
 SPEED
                 nrec    ttot    t/rec
@@ -32,13 +29,16 @@ PXFLAG="DP"
 NCHAN=4096
 ESTEP=0.01
 CHARENCODE = 'utf-8'
-MAPX=128
-MAPY=68
+
+#MAPX=128   #for leaf
+#MAPY=68
+MAPX=256    #for geo2
+MAPY=126
 
 #workdir and inputfile
 wdirname='data'     #working directory relative to script
 odirname='out'      #output directory relative to script
-infile = "leaf2_overview.GeoPIXE"    #assign input file
+#infile = "leaf2_overview.GeoPIXE"    #assign input file
 infile = "geo2.GeoPIXE"    #assign input file
 
 detid="A"   #detector ID - not needed for single detector maps
@@ -62,12 +62,25 @@ lgfont = 12     #default large font
 lwidth = 1  #default linewidth
 bwidth = 1  #default border width
 
+#debug - skip all but total/skipratio
+skipratio=25
 
 #-------------------------------------
 #FUNCTIONS
 #-----------------------------------
 
 def binunpack(stream, idx, sformat):
+    """
+    parse binary data via struct.unpack
+    takes:
+        stream of bytes
+        byte index
+        format flag for unpack (currently accepts: <H <f <I)
+    returns:
+        value in desired format (eg. int, float)
+        next byte index
+    """
+
     if sformat == "<H":
         nbytes=2
     elif sformat == "<f":
@@ -77,8 +90,9 @@ def binunpack(stream, idx, sformat):
     else:
         print(f"ERROR: {sformat} not recognised by local function binunpack")
         exit(0)
-#    frame=stream[idx:idx+nbytes]
-#    print("frame", frame)
+
+    #struct unpack outputs tuple
+    #want int so take first value
     retval = struct.unpack(sformat, stream[idx:idx+nbytes])[0]
     idx=idx+nbytes
     return(retval, idx)    
@@ -273,15 +287,11 @@ with open(f, mode='rb') as file: # rb = read binary
     stream = file.read()    #NB. to read in chunks, add chunk size as read(SIZE)
     streamlen=len(stream)
     print("stream length in bytes ",streamlen)
-
     print("first two bytes: ",stream[:2])
 
-    #struct unpack outputs tuple, want int
-    #get header length from first two bytes
-    #   read as little-endian uint16 "<H"
-    headerlen = int(struct.unpack("<H", stream[:2])[0])
+    headerlen=binunpack(stream,0,"<H")[0]
     print(f"header length: {headerlen}")
-
+    
     #occasionally, files might be missing the header
     #   when this happens, the first bytes are "DP" - denoting the start of a pixel record
     #   therefore if we get 20550 (="DP" as <uint16), header is missing
@@ -333,7 +343,7 @@ with open(f, mode='rb') as file: # rb = read binary
 #        print("index at end of record",idx)
 
         #if idx > 500:
-        if idx > streamlen/10:
+        if idx > streamlen/skipratio:
             print("ending at:", idx)
             idx=streamlen+1
         i+=1
@@ -359,9 +369,9 @@ with open(f, mode='rb') as file: # rb = read binary
     print("dt")
     print(dt[:i])    
 
-    print("RED",rvals)
-    print("GREEN",gvals)
-    print("BLUE",bvals)
+    print("RED pre",rvals)
+    print("GREEN pre",gvals)
+    print("BLUE pre",bvals)
     
     #print(rvals,gvals,bvals,ysum)
     allch=np.append(rvals,gvals)   
@@ -377,98 +387,28 @@ with open(f, mode='rb') as file: # rb = read binary
         gvals[i]=gvals[i]*rgbscale/chmax
         bvals[i]=bvals[i]*rgbscale/chmax
 
-    print("RED",rvals)
-    print("GREEN",gvals)
-    print("BLUE",bvals)
+    print("RED post",rvals)
+    print("GREEN post",gvals)
+    print("BLUE post",bvals)
+
+    np.savetxt(os.path.join(odir, "rvals.txt"), rvals)
+    np.savetxt(os.path.join(odir, "gvals.txt"), gvals)
+    np.savetxt(os.path.join(odir, "bvals.txt"), bvals)
 
     rreshape=np.reshape(rvals, (-1, MAPX))
-    greshape=np.reshape(rvals, (-1, MAPX))
-    breshape=np.reshape(rvals, (-1, MAPX))
+    greshape=np.reshape(gvals, (-1, MAPX))
+    breshape=np.reshape(bvals, (-1, MAPX))
 
-    rgbArray = np.zeros((MAPY,MAPX,3), 'uint8')
-    rgbArray[..., 0] = rreshape*256
-    rgbArray[..., 1] = greshape*256
-    rgbArray[..., 2] = breshape*256
+    rgbarray = np.zeros((MAPY,MAPX,3), 'uint8')
+    rgbarray[..., 0] = rreshape*256
+    rgbarray[..., 1] = greshape*256
+    rgbarray[..., 2] = breshape*256
     
-    print(rgbArray.shape)
-    plt.imshow(rgbArray)
+#    np.savetxt(os.path.join(odir, "rgb.txt"), rgbarray)
+    print(rgbarray.shape)
+    plt.imshow(rgbarray)
 
-    #rgbimg = Image.fromarray(rgbArray)
-    #rgbimg.show()
-    #rgbimg.save('myimg.jpeg')
-    
-    #reshaped = np.reshape(totalcounts, (MAPY, -1))
-    #print(reshaped.shape)
-    #plotting
-    #plt.imshow(reshaped, interpolation='nearest')
     plt.show()
 
 print("CLEAN EXIT")
 exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-success=True
-steps=np.arange(10)
-while success:
-    #initialise plot and colourmaps per frame
-    plt.rcParams["figure.figsize"] = [figx/2.54, figy/2.54]
-    plt.rcParams["figure.figsize"] = [figx/2.54, figy/2.54]
-    fig=plt.figure()
-    lut = cm = plt.get_cmap(colourmap) 
-    cNorm  = colors.Normalize(vmin=0, vmax=len(steps)+2)
-    scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=lut)
-
-    #READ NEXT FRAME
-    #filetype switcher again - read .avi and .tif differently
-    #   paired with switcher at top of main 
-    #   - be very careful that all branches send the same results downstream
-    if FTYPE == ".GeoPIXE":
-        #read a frame from the avi, returning success
-        readimage = f
-
-        if readimage is not None:
-                success=True
-        else:
-            print("failed for",f)
-            success=False
-    else:
-        print("FATAL: filetype {%} not recognised",FTYPE)
-        exit()    
-
-    print('Read frame : ', readimage)
-
-    #leave loop if import unsuccessful (ie. no more frames)
-    if not success:
-        break
-    
-    exit()
-print("CLEAN END")
