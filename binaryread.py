@@ -10,10 +10,13 @@ import time
 from decimal import *
 from scipy.optimize import curve_fit
 from src.utils import *
+from PIL import Image
 """
 SPEED
-reading only: 0.00014
-14 sec for 8700 records
+                nrec    ttot    t/rec
+reading only:   8700    14      0.00014 
+colourmap:      8700    67      0.0078
+
 
 
 
@@ -23,7 +26,8 @@ reading only: 0.00014
 #-----------------------------------
 #global variables
 FTYPE=".GeoPIXE"    #valid: ".GeoPIXE"
-DEBUG=False     #debug flag 
+DEBUG=False     #debug flag (pixels)
+DEBUG2=False    #second-level debug flag (channels)
 PXHEADERLEN=16  #pixel header size
 PXFLAG="DP"
 NCHAN=4096
@@ -98,6 +102,12 @@ def readpxrecord(idx, stream):
     #   DP  len     X       Y       det     dt  DATA
     #   2c  4i     2i       2i      2i      4f
     """
+    """
+    Read binary with struct
+    https://stackoverflow.com/questions/8710456/reading-a-binary-file-with-python
+    Read binary as chunks
+    https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
+    """
     pxstart=idx
 #   check for pixel start flag "DP" at first position after header:
     #   unpack first two bytes after header as char
@@ -107,10 +117,10 @@ def readpxrecord(idx, stream):
 
     #   check if string is "DP" - if not, fail
     if pxflag != PXFLAG:
-        print(f"ERROR: pixel flag 'DP' not found at byte {idx}")
+        print(f"ERROR: pixel flag 'DP' expected but not found at byte {idx}")
         exit()
     else:
-        print(f"found pixel at: {idx}")
+        print(f"pixel at: {idx} bytes")
 
     idx=idx+2   #step over "DP"
     if (DEBUG): print(f"next bytes at {idx}: {stream[idx:idx+PXHEADERLEN]}")
@@ -140,10 +150,10 @@ def readpxrecord(idx, stream):
     #pull channel, count pairs
     while idx < (pxstart+pxlen):
    #while idx < 2000:
-        if (DEBUG): print(f"next bytes at {idx}: {stream[idx:idx+8]}")
+        if (DEBUG2): print(f"next bytes at {idx}: {stream[idx:idx+8]}")
         chan[j], idx=binunpack(stream,idx,"<H")
         counts[j], idx=binunpack(stream,idx,"<H")
-        if (DEBUG): print(f"idx {idx} x {chan[j]} y {counts[j]}")
+        if (DEBUG2): print(f"idx {idx} x {chan[j]} y {counts[j]}")
         
     #    if (DEBUG): print(f"idx {idx} / {pxstart+pxlen}")
         j=j+1
@@ -202,7 +212,7 @@ print("script:", script)
 print("script path:", spath)
 print("data path:", wdir)
 print("---------------")
-
+"""
 #plot defaults
 plt.rc('font', size=smallfont)          # controls default text sizes
 plt.rc('axes', titlesize=smallfont)     # fontsize of the axes title
@@ -217,6 +227,8 @@ plt.rcParams['axes.linewidth'] = bwidth
 
 fig=plt.figure()
 ax=fig.add_subplot(111)
+"""
+"""
 ax.set_yscale('log')
 
 ax.set_ylabel('intensity (counts)')
@@ -225,7 +237,7 @@ ax.set_ylabel('intensity (counts)')
 #ax.set_xscale('log')
 ax.set_xlim(0,40)
 ax.set_xlabel('energy (keV)')
-
+"""
 
 starttime = time.time() #initialise timer
 totalpx=MAPX*MAPY   # map size
@@ -246,13 +258,6 @@ uvmu=maxe+sd*1.5
 #-----------------------------------
 #MAIN START
 #-----------------------------------
-"""
-Read binary with struct
-https://stackoverflow.com/questions/8710456/reading-a-binary-file-with-python
-Read binary as chunks
-https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
-"""
-
 
 if FTYPE == ".GeoPIXE":
     f = os.path.join(wdir,infile)
@@ -302,13 +307,14 @@ with open(f, mode='rb') as file: # rb = read binary
     bvals=np.zeros(totalpx)
     totalcounts=np.zeros(totalpx)
 
+    spectra=np.zeros((totalpx,NCHAN))
 
     i=0 #pixel counter
-    while idx < streamlen:
-        #check index against expected map dimensions
 
+    #loop through pixels
+    while idx < streamlen:
         #read pixel record
-        #   output spectrum, all header params, finishing index
+        #   output: spectrum, all header params, finishing index
         chan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(idx, stream)
 
         #fill gaps in spectrum 
@@ -316,22 +322,23 @@ with open(f, mode='rb') as file: # rb = read binary
         chan, counts = gapfill(chan,counts, NCHAN)
         #convert chan to energy
         #      easier to do this after gapfill so dict doesn't have to deal with floats
+        
         energy=chan*ESTEP
+        spectra[i,:]=counts
 
         rvals[i], bvals[i], gvals[i], totalcounts[i] = spectorgb(energy, counts, i)
         #warn if i is unexpectedly high - would mostly happen if header is wrong
         if i > totalpx:
             print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
-
         #pixel outputs:
-       # ax.plot(energy, counts, color = "red", label=i)
+        #ax.plot(energy, spectra[i,:], color = "red", label=i)
 #        print("index at end of record",idx)
 
         #if idx > 500:
-       #     print("ending at:", idx)
-         #   idx=72222500
+        if idx > streamlen/10:
+            print("ending at:", idx)
+            idx=streamlen+1
         i+=1
-
 
     print("---------------------------")
     print("MAP COMPLETE")
@@ -376,8 +383,26 @@ with open(f, mode='rb') as file: # rb = read binary
     print("GREEN",gvals)
     print("BLUE",bvals)
 
-    #plotting
+    rreshape=np.reshape(rvals, (-1, MAPX))
+    greshape=np.reshape(rvals, (-1, MAPX))
+    breshape=np.reshape(rvals, (-1, MAPX))
 
+    rgbArray = np.zeros((MAPY,MAPX,3), 'uint8')
+    rgbArray[..., 0] = rreshape*256
+    rgbArray[..., 1] = greshape*0
+    rgbArray[..., 2] = breshape*256
+    
+    print(rgbArray.shape)
+    plt.imshow(rgbArray)
+
+    #rgbimg = Image.fromarray(rgbArray)
+    #rgbimg.show()
+    #rgbimg.save('myimg.jpeg')
+    
+    #reshaped = np.reshape(totalcounts, (MAPY, -1))
+    #print(reshaped.shape)
+    #plotting
+    #plt.imshow(reshaped, interpolation='nearest')
     plt.show()
 
 print("CLEAN EXIT")
