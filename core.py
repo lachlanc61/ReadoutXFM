@@ -36,6 +36,7 @@ PXFLAG="DP"
 NCHAN=4096
 ESTEP=0.01
 CHARENCODE = 'utf-8'
+DOCOLOURS=False
 
 #MAPX=128   #for leaf
 #MAPY=68
@@ -139,7 +140,7 @@ def readpxrecord(idx, stream):
         print(f"ERROR: pixel flag 'DP' expected but not found at byte {idx}")
         exit()
     else:
-        print(f"pixel at: {idx} bytes")
+        if (DEBUG): print(f"pixel at: {idx} bytes")
 
     idx=idx+2   #step over "DP"
     if (DEBUG): print(f"next bytes at {idx}: {stream[idx:idx+PXHEADERLEN]}")
@@ -277,15 +278,19 @@ ax.set_xlabel('energy (keV)')
 starttime = time.time() #initialise timer
 totalpx=MAPX*MAPY   # map size
 
+chan=np.arange(0,NCHAN)
+energy=chan*ESTEP
+
 #initialise RGB split variables
-ncols=5
-xzer=np.floor(-(minxe/ESTEP)).astype(int)
-sd=(maxe-mine)/(sds)
-irmu=mine-sd*1.5
-rmu=mine+sd*1.5
-gmu=rmu+sd*3
-bmu=maxe-sd*1.5
-uvmu=maxe+sd*1.5
+if DOCOLOURS == True:
+    ncols=5
+    xzer=np.floor(-(minxe/ESTEP)).astype(int)
+    sd=(maxe-mine)/(sds)
+    irmu=mine-sd*1.5
+    rmu=mine+sd*1.5
+    gmu=rmu+sd*3
+    bmu=maxe-sd*1.5
+    uvmu=maxe+sd*1.5
 
 
 #-----------------------------------
@@ -331,18 +336,20 @@ with open(f, mode='rb') as file: # rb = read binary
     det=np.zeros(totalpx)
     dt=np.zeros(totalpx)
     
-    #initalise pixel colour arrays
-    rvals=np.zeros(totalpx)
-    gvals=np.zeros(totalpx)
-    bvals=np.zeros(totalpx)
-    totalcounts=np.zeros(totalpx)
+    if DOCOLOURS == True:
+        #initalise pixel colour arrays
+        rvals=np.zeros(totalpx)
+        gvals=np.zeros(totalpx)
+        bvals=np.zeros(totalpx)
+        totalcounts=np.zeros(totalpx)
 
-    spectra=np.zeros((totalpx,NCHAN))
+    data=np.zeros((totalpx,NCHAN))
 
     i=0 #pixel counter
 
     #loop through pixels
     while idx < streamlen:
+        if i % 50 == 0: print(f"Pixel {i} at {idx} bytes")
         #read pixel record
         #   output: spectrum, all header params, finishing index
         chan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(idx, stream)
@@ -353,15 +360,16 @@ with open(f, mode='rb') as file: # rb = read binary
 
         #convert chan to energy
         #      easier to do this after gapfill so dict doesn't have to deal with floats
-        energy=chan*ESTEP
-        spectra[i,:]=counts
+        data[i,:]=counts
 
-        rvals[i], bvals[i], gvals[i], totalcounts[i] = spectorgb(energy, counts)
+        #build colours if required
+        if DOCOLOURS == True: rvals[i], bvals[i], gvals[i], totalcounts[i] = spectorgb(energy, counts)
+        
         #warn if i is unexpectedly high - would mostly happen if header is wrong
         if i > totalpx:
             print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
         #pixel outputs:
-        #ax.plot(energy, spectra[i,:], color = "red", label=i)
+        #ax.plot(energy, data[i,:], color = "red", label=i)
 #        print("index at end of record",idx)
 
         #if idx > 500:
@@ -391,20 +399,38 @@ with open(f, mode='rb') as file: # rb = read binary
     print("dt")
     print(dt[:i])    
 
-    print(f'rgb maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
-    allch=np.append(rvals,gvals)   
-    allch=np.append(allch,bvals)  
-    chmax=max(allch)
+    if DOCOLOURS == True:
+        print(f'rgb maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
+        allch=np.append(rvals,gvals)   
+        allch=np.append(allch,bvals)  
+        chmax=max(allch)
 
-    maxcounts=max(totalcounts)
+        maxcounts=max(totalcounts)
 
-    for i in np.arange(totalpx):
-        rgbscale=totalcounts[i]/maxcounts
-        rvals[i]=rvals[i]*rgbscale/chmax
-        gvals[i]=gvals[i]*rgbscale/chmax
-        bvals[i]=bvals[i]*rgbscale/chmax
+        for i in np.arange(totalpx):
+            rgbscale=totalcounts[i]/maxcounts
+            rvals[i]=rvals[i]*rgbscale/chmax
+            gvals[i]=gvals[i]*rgbscale/chmax
+            bvals[i]=bvals[i]*rgbscale/chmax
 
-    print(f'scaled maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
+        print(f'scaled maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
+
+        np.savetxt(os.path.join(odir, "rvals.txt"), rvals)
+        np.savetxt(os.path.join(odir, "gvals.txt"), gvals)
+        np.savetxt(os.path.join(odir, "bvals.txt"), bvals)
+
+        rreshape=np.reshape(rvals, (-1, MAPX))
+        greshape=np.reshape(gvals, (-1, MAPX))
+        breshape=np.reshape(bvals, (-1, MAPX))
+
+        rgbarray = np.zeros((MAPY,MAPX,3), 'uint8')
+        rgbarray[..., 0] = rreshape*256
+        rgbarray[..., 1] = greshape*256
+        rgbarray[..., 2] = breshape*256
+        
+        plt.imshow(rgbarray)
+
+        plt.show()
 
     np.savetxt(os.path.join(odir, "pxlen.txt"), pxlen)
     np.savetxt(os.path.join(odir, "xidx.txt"), xidx)
@@ -412,22 +438,6 @@ with open(f, mode='rb') as file: # rb = read binary
     np.savetxt(os.path.join(odir, "detector.txt"), det)
     np.savetxt(os.path.join(odir, "dt.txt"), dt)
 
-    np.savetxt(os.path.join(odir, "rvals.txt"), rvals)
-    np.savetxt(os.path.join(odir, "gvals.txt"), gvals)
-    np.savetxt(os.path.join(odir, "bvals.txt"), bvals)
-
-    rreshape=np.reshape(rvals, (-1, MAPX))
-    greshape=np.reshape(gvals, (-1, MAPX))
-    breshape=np.reshape(bvals, (-1, MAPX))
-
-    rgbarray = np.zeros((MAPY,MAPX,3), 'uint8')
-    rgbarray[..., 0] = rreshape*256
-    rgbarray[..., 1] = greshape*256
-    rgbarray[..., 2] = breshape*256
-    
-    plt.imshow(rgbarray)
-
-    plt.show()
 
 print("CLEAN EXIT")
 exit()
