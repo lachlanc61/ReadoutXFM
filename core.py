@@ -8,6 +8,14 @@ import time
 from decimal import *
 from scipy.optimize import curve_fit
 from src.utils import *
+
+import seaborn as sns
+import time
+
+from sklearn import datasets, decomposition, manifold, preprocessing
+from colorsys import hsv_to_rgb
+
+import umap.umap_ as umap
 """
 Parses spectrum-by-pixel maps from IXRF XFM
 
@@ -37,6 +45,7 @@ NCHAN=4096
 ESTEP=0.01
 CHARENCODE = 'utf-8'
 DOCOLOURS=False
+DOCLUST=True
 
 #MAPX=128   #for leaf
 #MAPY=68
@@ -234,9 +243,34 @@ def spectorgb(e, y):
     
     return(rret,gret,bret,yret)
 
+
+
+
+
+
+#-----------------------------------
+#CLASSES
+#-----------------------------------
+"""
+reducers = [
+    (manifold.TSNE, {"perplexity": 50}),
+    # (manifold.LocallyLinearEmbedding, {'n_neighbors':10, 'method':'hessian'}),
+    (manifold.Isomap, {"n_neighbors": 30}),
+    (manifold.MDS, {}),
+    (decomposition.PCA, {}),
+    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3}),
+]
+"""
+reducers = [
+    (decomposition.PCA, {}),
+    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3}),
+]
+
+
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
+
 
 #initialise directories relative to script
 script = os.path.realpath(__file__) #_file = current script
@@ -248,16 +282,19 @@ print("script path:", spath)
 print("data path:", wdir)
 print("---------------")
 
+
 #plot defaults
-plt.rc('font', size=smallfont)          # controls default text sizes
-plt.rc('axes', titlesize=smallfont)     # fontsize of the axes title
-plt.rc('axes', labelsize=medfont)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=smallfont)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=smallfont)    # fontsize of the tick labels
-plt.rc('legend', fontsize=smallfont)    # legend fontsize
-plt.rc('figure', titlesize=lgfont)  # fontsize of the figure title
-plt.rc('lines', linewidth=lwidth)
-plt.rcParams['axes.linewidth'] = bwidth
+
+if False:
+    plt.rc('font', size=smallfont)          # controls default text sizes
+    plt.rc('axes', titlesize=smallfont)     # fontsize of the axes title
+    plt.rc('axes', labelsize=medfont)    # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=smallfont)    # fontsize of the tick labels
+    plt.rc('ytick', labelsize=smallfont)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=smallfont)    # legend fontsize
+    plt.rc('figure', titlesize=lgfont)  # fontsize of the figure title
+    plt.rc('lines', linewidth=lwidth)
+    plt.rcParams['axes.linewidth'] = bwidth
 
 """
 plot options for spectra - not currently usede
@@ -432,12 +469,62 @@ with open(f, mode='rb') as file: # rb = read binary
 
         plt.show()
 
+
+    if DOCLUST:
+        
+        sns.set(context="paper", style="white")
+        n_cols = len(reducers)
+        counter = 0
+        ax_list = []
+        elements=np.arange(0,MAPX*MAPY)
+        # plt.figure(figsize=(9 * 2 + 3, 12.5))
+        plt.figure(figsize=(10, 8))
+        plt.subplots_adjust(
+            left=0.02, right=0.98, bottom=0.001, top=0.96, wspace=0.05, hspace=0.01
+        )
+        #for data, labels in test_data:
+        #    print("cycle start",ax_index)
+        for reducer, args in reducers:
+
+            start_time = time.time()
+            embedding = reducer(n_components=2, **args).fit_transform(data)
+            elapsed_time = time.time() - start_time
+            ax = plt.subplot(1, n_cols, (counter+1))
+            print(embedding)
+
+            ax.scatter(*embedding.T, s=10, c=elements, cmap="Spectral", alpha=0.5)
+            #else:
+            #    ax.scatter(*embedding.T, s=10, c="red", cmap="Spectral", alpha=0.5)
+            ax.text(
+                0.99,
+                0.01,
+                "{:.2f} s".format(elapsed_time),
+                transform=ax.transAxes,
+                size=14,
+                horizontalalignment="right",
+            )
+            
+            redname=repr(reducers[counter][0]()).split("(")[0]
+            print("reducer",redname, reducer)
+            ax_list.append(ax)
+            ax_list[counter].set_xlabel(redname, size=16)
+            ax_list[counter].xaxis.set_label_position("top")
+            print("rname:",redname)
+            np.savetxt(os.path.join(odir, redname + ".txt"), embedding)
+            
+            counter += 1
+           
+        plt.setp(ax_list, xticks=[], yticks=[])
+
+        plt.tight_layout()
+        plt.show()
+
+
     np.savetxt(os.path.join(odir, "pxlen.txt"), pxlen)
     np.savetxt(os.path.join(odir, "xidx.txt"), xidx)
     np.savetxt(os.path.join(odir, "yidx.txt"), yidx)
     np.savetxt(os.path.join(odir, "detector.txt"), det)
     np.savetxt(os.path.join(odir, "dt.txt"), dt)
-
 
 print("CLEAN EXIT")
 exit()
