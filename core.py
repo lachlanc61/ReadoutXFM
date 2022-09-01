@@ -485,7 +485,7 @@ with open(f, mode='rb') as file: # rb = read binary
         #for data, labels in test_data:
         #    print("cycle start",ax_index)
         for reducer, args in reducers:
-
+            print("reducer",redname, reducer)
             start_time = time.time()
             embedding = reducer(n_components=2, **args).fit_transform(data)
             elapsed_time = time.time() - start_time
@@ -505,11 +505,11 @@ with open(f, mode='rb') as file: # rb = read binary
             )
             
             redname=repr(reducers[counter][0]()).split("(")[0]
-            print("reducer",redname, reducer)
+
             ax_list.append(ax)
             ax_list[counter].set_xlabel(redname, size=16)
             ax_list[counter].xaxis.set_label_position("top")
-            print("rname:",redname)
+            print("SAVING")
             np.savetxt(os.path.join(odir, redname + ".txt"), embedding)
             
             counter += 1

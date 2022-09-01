@@ -19,7 +19,7 @@ MAPY=126
 NCHAN=4096
 MAPX=256    #for geo2
 MAPY=126
-
+CMAPS=["Accent","Set1"]
 #workdir and inputfile
 wdirname='data'     #working directory relative to script
 odirname='out'      #output directory relative to script
@@ -80,19 +80,21 @@ elements=np.arange(0,MAPX*MAPY)
 for reducer, args in reducers:
 
     redname=repr(reducers[i][0]()).split("(")[0]
-
     start_time = time.time()
 
     embedding=np.loadtxt(os.path.join(odir, redname + ".txt"))
 
     kmeans.fit(embedding)
+    categories=kmeans.labels_
+    np.savetxt(os.path.join(odir, redname + "_kmeans.txt"), categories)
+
+    catmap=np.reshape(categories, [-1,MAPX])
+    np.savetxt(os.path.join(odir, redname + "_kgrid.txt"), catmap)
 
     elapsed_time = time.time() - start_time
 
-    print(kmeans.labels_)
-
     ax = plt.subplot(1, n_cols, i+1)
-    ax.scatter(*embedding.T, s=10, c=kmeans.labels_, cmap="Spectral", alpha=0.5)
+    ax.scatter(*embedding.T, s=10, c=categories, cmap=CMAPS[i], alpha=0.5)
 
     #else:
     #    ax.scatter(*embedding.T, s=10, c="red", cmap="Spectral", alpha=0.5)
@@ -117,4 +119,27 @@ for reducer, args in reducers:
 plt.setp(ax_list, xticks=[], yticks=[])
 
 plt.tight_layout()
+
+plt.savefig(os.path.join(odir, 'clusters.png'), dpi=150)
+plt.show()
+
+plt.clf()
+
+
+plt.figure(figsize=(10, 10))
+plt.subplots_adjust(
+    left=0.02, right=0.98, bottom=0.04, top=0.96, wspace=0.05, hspace=0.1
+)
+
+i=0
+for reducer, args in reducers:
+    catmap=np.loadtxt(os.path.join(odir, redname + "_kgrid.txt"))
+    
+    ax = plt.subplot(n_cols, 1, i+1)
+    ax.imshow(catmap, cmap=CMAPS[i])
+
+
+    i+=1    
+
+plt.savefig(os.path.join(odir, 'catmaps.png'), dpi=150)
 plt.show()
