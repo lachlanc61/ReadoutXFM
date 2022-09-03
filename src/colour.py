@@ -1,6 +1,8 @@
 import numpy as np
 import os
 
+from colorsys import hsv_to_rgb
+
 import config
 import src.utils as utils
 import matplotlib.pyplot as plt
@@ -16,6 +18,7 @@ elastic=17.44  #energy of tube Ka
 maxe=30  #maximum energy of interest
 sds=9   #standard deviations
 rgblogscale=True    #map RGB as log of intensity
+ncols=5
 
 #-------------------------------------
 #FUNCTIONS
@@ -121,7 +124,6 @@ def clcomplete(rvals, gvals, bvals, totalcounts):
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
-ncols=5
 xzer=np.floor(-(minxe/config.ESTEP)).astype(int)
 sd=(maxe-mine)/(sds)
 irmu=mine-sd*1.5

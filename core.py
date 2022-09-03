@@ -1,31 +1,17 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
 import os
-import struct 
 import time
 import gc
-from decimal import *
-from scipy.optimize import curve_fit
-
-
-
-import seaborn as sns
 import time
 
-from sklearn import datasets, decomposition, manifold, preprocessing
-from colorsys import hsv_to_rgb
-
+import numpy as np
+from sklearn import decomposition
 import umap.umap_ as umap
-
 
 import config
 import src.utils as utils
 import src.bitops as bitops
 import src.colour as colour
 import src.clustering as clustering
-
 
 """
 Parses spectrum-by-pixel maps from IXRF XFM
@@ -165,26 +151,18 @@ with open(f, mode='rb') as file: # rb = read binary
             idx=streamlen+1
         i+=1
 
-    print("---------------------------")
-    print("MAP COMPLETE")
-    print("---------------------------")
-    #output result arrays   
     runtime = time.time() - starttime
-    print("pixels expected (X*Y):", totalpx) 
-    print("pixels found:", i)
-    print(f"total time: {round(runtime,2)} s")
-    print(f"time per pixel: {round((runtime/i),6)} s") 
-    print("---------------------------")
-    print("pixel lengths")
-    print(pxlen[:i])
-    print("xidx")
-    print(xidx[:i])
-    print("yidx")
-    print(yidx[:i])
-    print("detector")
-    print(det[:i])
-    print("dt")
-    print(dt[:i])    
+
+    print(
+        "---------------------------\n"
+        "MAP COMPLETE\n"
+        "---------------------------\n"
+        f"pixels expected (X*Y): {totalpx}\n"
+        f"pixels found: {i}\n"
+        f"total time: {round(runtime,2)} s\n"
+        f"time per pixel: {round((runtime/i),6)} s\n"
+        "---------------------------"
+    )
 
     #clear the bytestream from memory
     del stream

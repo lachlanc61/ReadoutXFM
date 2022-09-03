@@ -72,7 +72,7 @@ print("---------------")
 
 #plot defaults
 
-if True:
+if False:
     plt.rc('font', size=smallfont)          # controls default text sizes
     plt.rc('axes', titlesize=smallfont)     # fontsize of the axes title
     plt.rc('axes', labelsize=medfont)    # fontsize of the x and y labels
@@ -82,19 +82,3 @@ if True:
     plt.rc('figure', titlesize=lgfont)  # fontsize of the figure title
     plt.rc('lines', linewidth=lwidth)
     plt.rcParams['axes.linewidth'] = bwidth
-
-"""
-plot options for spectra - not currently used
-fig=plt.figure()
-ax=fig.add_subplot(111)
-"""
-"""
-ax.set_yscale('log')
-
-ax.set_ylabel('intensity (counts)')
-#ax.set_ylim(0,50)
-
-#ax.set_xscale('log')
-ax.set_xlim(0,40)
-ax.set_xlabel('energy (keV)')
-"""
