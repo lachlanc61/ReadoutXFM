@@ -1,10 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import time
 import os
 
-from sklearn import datasets, decomposition, manifold, preprocessing
+from sklearn import decomposition
 from sklearn.cluster import KMeans
 import umap.umap_ as umap
 
@@ -13,12 +12,15 @@ import config
 #-----------------------------------
 #CONSTANTS
 #-----------------------------------
-KCMAPS=["Accent","Set1"]
+KCMAPS=["Accent","Set1"]    #colourmaps for kmeans
 
 #-----------------------------------
 #CLASSES
 #-----------------------------------
 """
+#full reducer list here
+from sklearn import datasets, decomposition, manifold, preprocessing
+
 reducers = [
     (manifold.TSNE, {"perplexity": 50}),
     # (manifold.LocallyLinearEmbedding, {'n_neighbors':10, 'method':'hessian'}),
@@ -74,7 +76,6 @@ def reduce(data):
 def dokmeans(embedding):
     categories=np.zeros((nred,len(elements)))
 
-    
     for i in np.arange(0,nred):
         redname=repr(reducers[i][0]()).split("(")[0]
         embed = embedding[i,:,:]
@@ -92,85 +93,68 @@ def dokmeans(embedding):
     return categories
 
 def clustplt(embedding, categories, clusttimes):
-   #set  figure params
-    sns.set(context="paper", style="white")
-    plt.figure(figsize=(10, 8))
-    plt.subplots_adjust(
-        left=0.02, right=0.98, bottom=0.001, top=0.96, wspace=0.05, hspace=0.01
-    )
+    """
+    receives arrays from reducers and kmeans
+    + time to cluster
 
-    ax_list = []    #list of axes
+    plots Nx2 plot for each reducer
 
+    https://towardsdatascience.com/clearing-the-confusion-once-and-for-all-fig-ax-plt-subplots-b122bb7783ca
+    """    
+        
+    #create figure and ax matrix
+    #   gridspec adjusts widths of subplots in each row
+    fig, (ax) = plt.subplots(nred, 2, figsize=(9, 6), gridspec_kw={'width_ratios': [1, 2]})
+    fig.tight_layout(pad=2)
+ 
+    #fig.subplots_adjust(
+    #    left=0.02, right=0.98, bottom=0.001, top=0.96, wspace=0.05, hspace=0.01
+    #)
+
+    #for each reducer
     for i in np.arange(0,nred):
-
+        #get the reducer's name
         redname=repr(reducers[i][0]()).split("(")[0]
+        #read in the embedding xy array and time
         embed = embedding[i,:]
         elapsed_time = clusttimes[i]
         
-        plotindex=i
-        print("PLOTINDEX",plotindex)
-        ax = plt.subplot(nred, 2, plotindex+1)
-        print(redname, "colourmap", KCMAPS[i])
-        print(redname, "categories", categories[i])
-        ax.scatter(*embed.T, s=10, c=categories[i], cmap=KCMAPS[i], alpha=0.5)
-        #else:
-        #    ax.scatter(*embedding.T, s=10, c="red", cmap="Spectral", alpha=0.5)
-        ax.text(
+        #assign index in plot matrix
+        plotid=(i,0)
+
+        #adjust plotting options
+        ax[plotid].set_xlabel(redname, size=16)
+        ax[plotid].xaxis.set_label_position("top")
+
+        #create the scatterplot for this reducer
+        ax[plotid].scatter(*embed.T, s=10, c=categories[i], cmap=KCMAPS[i], alpha=0.5)
+
+        #add the runtime as text
+        ax[plotid].text(
             0.99,
             0.01,
             "{:.2f} s".format(elapsed_time),
-            transform=ax.transAxes,
+            transform=ax[plotid].transAxes,
             size=14,
             horizontalalignment="right",
         )
         
-        ax_list.append(ax)
-        ax_list[plotindex].set_xlabel(redname, size=16)
-        ax_list[plotindex].xaxis.set_label_position("top")
+        #assign index for category map for this reducer
+        plotid=(i,1)
 
-        print(ax_list)        
-
-
-        plotindex=i+2
-
-        print("PLOTINDEX",plotindex)
-        ax = plt.subplot(nred, 2, (plotindex+1))
+        #reshape the category list using the image dimension globals
         catmap=np.reshape(categories[i], [-1,config.MAPX])
-        ax.imshow(catmap, cmap=KCMAPS[i])
 
+        #show this category image
+        ax[plotid].imshow(catmap, cmap=KCMAPS[i])
 
-        ax_list.append(ax)
-        ax_list[plotindex].set_xlabel(redname, size=16)
-        ax_list[plotindex].xaxis.set_label_position("top")
+    #initalise the final plot, clear the axes
+    plt.setp(ax, xticks=[], yticks=[])
 
-        print(ax_list)
-
-    plt.setp(ax_list, xticks=[], yticks=[])
-
-    plt.tight_layout()
-
+    #save and show
     plt.savefig(os.path.join(config.odir, 'clusters.png'), dpi=150)
     plt.show()
     return
-    """
-    plt.figure(figsize=(10, 10))
-    plt.subplots_adjust(
-        left=0.02, right=0.98, bottom=0.04, top=0.96, wspace=0.05, hspace=0.1
-    )
-
-    i=0
-    for reducer, args in reducers:
-        catmap=np.loadtxt(os.path.join(odir, redname + "_kgrid.txt"))
-        
-        ax = plt.subplot(n_cols, 1, i+1)
-        ax.imshow(catmap, cmap=CMAPS[i])
-
-
-        i+=1    
-
-    plt.savefig(os.path.join(odir, 'catmaps.png'), dpi=150)
-    plt.show()
-    """
 
 #-----------------------------------
 #INITIALISE
@@ -178,3 +162,4 @@ def clustplt(embedding, categories, clusttimes):
 
 nred = len(reducers)
 elements=np.arange(0,config.MAPX*config.MAPY)
+

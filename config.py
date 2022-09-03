@@ -24,11 +24,12 @@ MAPY=126
 DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
-SHORTRUN=True  #stop after first X% of pixels
+SHORTRUN=False  #stop after first X% of pixels
 skipratio=5    #% of px
 
-FORCERED=False        #always recalc dimensionality reduction
-FORCEKMEANS=False     #always recalc kmeans 
+#recalc flags
+FORCERED=True        #always recalc dimensionality reduction
+FORCEKMEANS=True     #always recalc kmeans 
 
 #-----------------------------------
 #USER MODIFIABLE VARIABLES
