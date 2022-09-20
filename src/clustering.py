@@ -13,6 +13,7 @@ import config
 #CONSTANTS
 #-----------------------------------
 KCMAPS=["Accent","Set1"]    #colourmaps for kmeans
+nclust=10
 
 #-----------------------------------
 #CLASSES
@@ -37,8 +38,8 @@ reducers = [
 
 kmeans = KMeans(
     init="random",
-    n_clusters=10,
-    n_init=10,
+    n_clusters=nclust,
+    n_init=nclust,
     max_iter=300,
     random_state=42
  )
@@ -75,7 +76,6 @@ def reduce(data):
 
 def dokmeans(embedding):
     categories=np.zeros((nred,len(elements)))
-
     for i in np.arange(0,nred):
         redname=repr(reducers[i][0]()).split("(")[0]
         embed = embedding[i,:,:]
@@ -91,6 +91,27 @@ def dokmeans(embedding):
             print("loading from file", redname)
             categories[i]=np.loadtxt(os.path.join(config.odir, redname + "_kmeans.txt"))
     return categories
+
+def sumclusters(dataset, catlist):
+    """
+    calculate summed spectrum for each cluster
+    args: 
+        dataset, spectrum by px
+        catlist, categories by px
+    returns:
+        specsum, spectrum by category
+    
+    knows: nclust, number of clusters
+    """
+    specsum=np.zeros([nclust,config.NCHAN])
+
+    for i in range(nclust):
+        datcat=dataset[catlist==i]
+        pxincat = datcat.shape[0]   #no pixels in category i
+        specsum[i,:]=(np.sum(datcat,axis=0))/pxincat
+        print(specsum[i,:])
+        #plt.plot(energy, specsum[i,:])
+    return specsum
 
 def clustplt(embedding, categories, clusttimes):
     """

@@ -188,3 +188,10 @@ with open(f, mode='rb') as file: # rb = read binary
 
 print("CLEAN EXIT")
 exit()
+
+
+
+"""
+snip background
+https://stackoverflow.com/questions/57350711/baseline-correction-for-spectroscopic-data
+"""
