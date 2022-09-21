@@ -14,6 +14,8 @@ ESTEP=0.01
 CHARENCODE = 'utf-8'
 DOCOLOURS=True
 DOCLUST=True
+nclust=10
+
 CMAP='Set1'
 #MAPX=128   #for leaf
 #MAPY=68
@@ -51,9 +53,6 @@ medfont = 10    #default medium font
 lgfont = 12     #default large font
 lwidth = 1  #default linewidth
 bwidth = 1  #default border width
-
-#debug params
-skipratio=20    #pct of file to finish at, if skipping
 
 #-----------------------------------
 #INITIALISE

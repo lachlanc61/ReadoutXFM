@@ -177,8 +177,19 @@ with open(f, mode='rb') as file: # rb = read binary
         categories = clustering.dokmeans(embedding)
         print("categories full")
         print(categories)
-        clustering.clustplt(embedding, categories, clusttimes)
+        print(categories.shape)
 
+        clustaverages=np.zeros([len(clustering.reducers),config.nclust,config.NCHAN])
+        for i in range(len(clustering.reducers)):
+            redname=clustering.getredname(i)
+            clustaverages[i]=clustering.sumclusters(data, categories[i])
+        
+            for j in range(config.nclust):
+
+                print(f'saving reducer {redname} cluster {j} with shape {clustaverages[i,j,:].shape}')
+                np.savetxt(os.path.join(config.odir, "sum_" + redname + "_" + str(j) + ".txt"), np.c_[energy, clustaverages[i,j,:]], fmt=['%1.3e','%1.6e'])
+                #plt.plot(energy, clustaverages[i,j,:])
+        clustering.clustplt(embedding, categories, clusttimes)
 
     np.savetxt(os.path.join(config.odir, "pxlen.txt"), pxlen)
     np.savetxt(os.path.join(config.odir, "xidx.txt"), xidx)

@@ -13,7 +13,6 @@ import config
 #CONSTANTS
 #-----------------------------------
 KCMAPS=["Accent","Set1"]    #colourmaps for kmeans
-nclust=10
 
 #-----------------------------------
 #CLASSES
@@ -38,8 +37,8 @@ reducers = [
 
 kmeans = KMeans(
     init="random",
-    n_clusters=nclust,
-    n_init=nclust,
+    n_clusters=config.nclust,
+    n_init=config.nclust,
     max_iter=300,
     random_state=42
  )
@@ -48,14 +47,16 @@ kmeans = KMeans(
 #FUNCTIONS
 #-----------------------------------
 
-def reduce(data):
+def getredname(i):
+    return repr(reducers[i][0]()).split("(")[0]
 
+def reduce(data):
     embedding=np.zeros((nred,len(elements),2))
     clusttimes=np.zeros(nred)
 
     i = 0
     for reducer, args in reducers:
-        redname=repr(reducers[i][0]()).split("(")[0]
+        redname=getredname(i)
         start_time = time.time()
         print(f'REDUCER {i+1} of {nred}: {redname} across {len(elements)} elements')
 
@@ -101,13 +102,13 @@ def sumclusters(dataset, catlist):
     returns:
         specsum, spectrum by category
     
-    knows: nclust, number of clusters
+    aware: nclust, number of clusters
     """
-    specsum=np.zeros([nclust,config.NCHAN])
+    specsum=np.zeros([config.nclust,config.NCHAN])
 
-    for i in range(nclust):
+    for i in range(config.nclust):
         datcat=dataset[catlist==i]
-        pxincat = datcat.shape[0]   #no pixels in category i
+        pxincat = datcat.shape[0]   #no. pixels in category i
         specsum[i,:]=(np.sum(datcat,axis=0))/pxincat
         print(specsum[i,:])
         #plt.plot(energy, specsum[i,:])
