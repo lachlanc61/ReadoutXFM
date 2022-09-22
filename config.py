@@ -14,6 +14,7 @@ ESTEP=0.01
 CHARENCODE = 'utf-8'
 DOCOLOURS=True
 DOCLUST=True
+SEPSUMSPEC=True
 nclust=10
 
 CMAP='Set1'

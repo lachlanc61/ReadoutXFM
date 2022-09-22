@@ -121,8 +121,8 @@ with open(f, mode='rb') as file: # rb = read binary
     #loop through pixels
     while idx < streamlen:
 
-        #print pixel index every 50 px
-        if i % 50 == 0: print(f"Pixel {i} at {idx} bytes")
+        #print pixel index every 100 px
+        if i % 100 == 0: print(f"Pixel {i} at {idx} bytes, {100*idx/streamlen:.1f} %")
 
         #read pixel record into spectrum and header param arrays, 
         # + reassign index at end of read
@@ -134,7 +134,7 @@ with open(f, mode='rb') as file: # rb = read binary
 
         #warn if recieved channel list is different length to chan array
         if len(outchan) != len(chan):
-            print("WARNING: channel list from pixel does not match expected")
+            print("WARNING: unexpected length of channel list")
       
         #assign counts into data array - 
         data[i,:]=counts
@@ -167,9 +167,10 @@ with open(f, mode='rb') as file: # rb = read binary
     #clear the bytestream from memory
     del stream
     gc.collect()
-
+    
     if config.DOCOLOURS == True:
-        colour.clcomplete(rvals, gvals, bvals, totalcounts)
+        rgbarray=colour.clcomplete(rvals, gvals, bvals, totalcounts)
+        colour.clshow(rgbarray)
 
     print("DOCLUST", config.DOCLUST)
     if config.DOCLUST:
@@ -183,12 +184,15 @@ with open(f, mode='rb') as file: # rb = read binary
         for i in range(len(clustering.reducers)):
             redname=clustering.getredname(i)
             clustaverages[i]=clustering.sumclusters(data, categories[i])
-        
+            
             for j in range(config.nclust):
-
+                
                 print(f'saving reducer {redname} cluster {j} with shape {clustaverages[i,j,:].shape}')
                 np.savetxt(os.path.join(config.odir, "sum_" + redname + "_" + str(j) + ".txt"), np.c_[energy, clustaverages[i,j,:]], fmt=['%1.3e','%1.6e'])
-                #plt.plot(energy, clustaverages[i,j,:])
+            
+            print(f'saving combined file for {redname}')
+            np.savetxt(os.path.join(config.odir, "sum_" + redname + ".txt"), np.c_[energy, clustaverages[i,:,:].transpose(1,0)], fmt='%1.5e')             
+            #plt.plot(energy, clustaverages[i,j,:])
         clustering.clustplt(embedding, categories, clusttimes)
 
     np.savetxt(os.path.join(config.odir, "pxlen.txt"), pxlen)

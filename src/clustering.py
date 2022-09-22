@@ -48,6 +48,11 @@ kmeans = KMeans(
 #-----------------------------------
 
 def getredname(i):
+    """
+    get name of reducer from specified index
+    args:       index of reducer
+    returns:    reducer name
+    """
     return repr(reducers[i][0]()).split("(")[0]
 
 def reduce(data):
@@ -76,6 +81,11 @@ def reduce(data):
 
 
 def dokmeans(embedding):
+    """
+    perform kmeans on embedding
+    args:       set of 2D embedding matrices, shape [nreducers,x,y]
+    returns:    category-by-pixel matrix, shape [nreducers,chan]
+    """
     categories=np.zeros((nred,len(elements)))
     for i in np.arange(0,nred):
         redname=repr(reducers[i][0]()).split("(")[0]

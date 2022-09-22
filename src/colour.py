@@ -116,10 +116,11 @@ def clcomplete(rvals, gvals, bvals, totalcounts):
     rgbarray[..., 1] = greshape*256
     rgbarray[..., 2] = breshape*256
     
+    return(rgbarray)
+
+def clshow(rgbarray):
     plt.imshow(rgbarray)
-
     plt.show()   
-
 
 #-----------------------------------
 #INITIALISE
