@@ -3,4 +3,5 @@ data
 
 # Distribution / packaging
 .venv
+.python-version
 
