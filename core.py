@@ -167,7 +167,7 @@ with open(f, mode='rb') as file: # rb = read binary
     #clear the bytestream from memory
     del stream
     gc.collect()
-    
+
     if config.DOCOLOURS == True:
         rgbarray=colour.clcomplete(rvals, gvals, bvals, totalcounts)
         colour.clshow(rgbarray)
@@ -203,7 +203,6 @@ with open(f, mode='rb') as file: # rb = read binary
 
 print("CLEAN EXIT")
 exit()
-
 
 
 """

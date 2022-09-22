@@ -82,7 +82,8 @@ def reduce(data):
 
 def dokmeans(embedding):
     """
-    perform kmeans on embedding
+    performs kmeans on embedding matrices to cluster 2D matrices from reducers 
+
     args:       set of 2D embedding matrices, shape [nreducers,x,y]
     returns:    category-by-pixel matrix, shape [nreducers,chan]
     """
