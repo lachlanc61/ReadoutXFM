@@ -14,6 +14,16 @@ import src.colour as colour
 import src.clustering as clustering
 
 """
+INITIALISE data TO WHOLE MAP EVEN IF USING EARLY STOP
+.: huge memory req
+can scale that down
+
+also consider throwing away some, scaling down floats/ints etc
+
+"""
+
+
+"""
 Parses spectrum-by-pixel maps from IXRF XFM
 
 - parses binary .GeoPIXE files

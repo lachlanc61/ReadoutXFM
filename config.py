@@ -30,8 +30,8 @@ MAPY=520
 DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
-SHORTRUN=False  #stop after first X% of pixels
-skipratio=5    #% of px
+SHORTRUN=True  #stop after first X% of pixels
+skipratio=10    #% of px
 
 #recalc flags
 FORCERED=True        #always recalc dimensionality reduction
