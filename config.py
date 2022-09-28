@@ -12,7 +12,7 @@ PXFLAG="DP"
 NCHAN=4096
 ESTEP=0.01
 CHARENCODE = 'utf-8'
-DOCOLOURS=True
+DOCOLOURS=False
 DOCLUST=True
 SEPSUMSPEC=True
 nclust=10
@@ -22,6 +22,9 @@ CMAP='Set1'
 #MAPY=68
 MAPX=256    #for geo2
 MAPY=126
+MAPX=1600    #for dw12
+MAPY=520
+
 
 #debug flags
 DEBUG=False     #debug flag (pixels)
@@ -41,7 +44,10 @@ FORCEKMEANS=True     #always recalc kmeans
 #workdir and inputfile
 wdirname='data'     #working directory relative to script
 odirname='out'      #output directory relative to script
-infile = "geo2.GeoPIXE"    #assign input file
+
+infile = "geo_dwb12-2.GeoPIXE"
+#infile = "geo2.GeoPIXE"    #assign input file
+
 
 #instrument config
 detid="A"   #detector ID - not needed for single detector maps

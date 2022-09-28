@@ -53,6 +53,7 @@ reducers = [
 #INITIALISE
 #-----------------------------------
 
+
 starttime = time.time()             #init timer
 
 totalpx=config.MAPX*config.MAPY     #map size
