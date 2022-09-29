@@ -44,20 +44,6 @@ read and clust  0.001296
 #-----------------------------------
 #CLASSES
 #-----------------------------------
-"""
-reducers = [
-    (manifold.TSNE, {"perplexity": 50}),
-    # (manifold.LocallyLinearEmbedding, {'n_neighbors':10, 'method':'hessian'}),
-    (manifold.Isomap, {"n_neighbors": 30}),
-    (manifold.MDS, {}),
-    (decomposition.PCA, {}),
-    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3}),
-]
-"""
-reducers = [
-    (decomposition.PCA, {}),
-    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3}),
-]
 
 #-----------------------------------
 #INITIALISE
