@@ -94,7 +94,7 @@ def dokmeans(embedding, npx):
     returns:    category-by-pixel matrix, shape [nreducers,chan]
     """
 
-    categories=np.zeros((nred,npx))
+    categories=np.zeros((nred,npx),dtype=np.uint16)
     for i in np.arange(0,nred):
         redname=repr(reducers[i][0]()).split("(")[0]
         embed = embedding[i,:,:]

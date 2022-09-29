@@ -113,11 +113,11 @@ with open(f, mode='rb') as file: # rb = read binary
     idx=headerlen+2 #legnth of header + 2 bytes
 
     #initialise pixel param arrays
-    pxlen=np.zeros(totalpx)
-    xidx=np.zeros(totalpx)
-    yidx=np.zeros(totalpx)
-    det=np.zeros(totalpx)
-    dt=np.zeros(totalpx)
+    pxlen=np.zeros(totalpx,dtype=np.uint16)
+    xidx=np.zeros(totalpx,dtype=np.uint16)
+    yidx=np.zeros(totalpx,dtype=np.uint16)
+    det=np.zeros(totalpx,dtype=np.uint8)
+    dt=np.zeros(totalpx,dtype=np.uint16)
     
     if config.DOCOLOURS == True:
         #initalise pixel colour arrays
@@ -197,6 +197,7 @@ with open(f, mode='rb') as file: # rb = read binary
         print(categories.shape)
 
         clustaverages=np.zeros([len(clustering.reducers),config.nclust,config.NCHAN])
+        
         for i in range(len(clustering.reducers)):
             redname=clustering.getredname(i)
             clustaverages[i]=clustering.sumclusters(data, categories[i])
