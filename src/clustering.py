@@ -183,8 +183,8 @@ def clustplt(embedding, categories, mapx, clusttimes):
         plotid=(i,1)
 
         #reshape the category list back to the map dimensions using xdim
-        catmap=np.reshape(categories[i], [-1,mapx])
-
+        #WARNING: fails using SHORTRUN unless ends at end of row - fix this later
+        catmap=np.reshape(categories[i], [-1, mapx])
         #show this category image
         ax[plotid].imshow(catmap, cmap=KCMAPS[i])
 
