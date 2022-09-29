@@ -201,6 +201,11 @@ with open(f, mode='rb') as file: # rb = read binary
 
     runtime = time.time() - starttime
 
+    "---------------------------\n"
+    "Memory usage:\n"
+    "---------------------------\n"
+    utils.varsizes(locals().items())
+
     print(
         "---------------------------\n"
         "MAP COMPLETE\n"
@@ -211,6 +216,10 @@ with open(f, mode='rb') as file: # rb = read binary
         f"time per pixel: {round((runtime/i),6)} s\n"
         "---------------------------"
     )
+
+    if config.SAVEPXSPEC:
+        print(f"saving spectrum-by-pixel to file")
+        np.savetxt(os.path.join(config.odir,  config.savename + ".dat"), data, fmt='%i')
 
     #clear the bytestream from memory
     del stream

@@ -1,0 +1,35 @@
+geo2.GeoPIXE
+    Mo source
+    256x124
+
+    readbinary = 60s
+    save txt = 10s
+    load txt = 30s
+
+
+    cluster timing
+    memstart= 3G
+    PCA      =       =  4s
+    UMAPfast =  4.7G =  35s
+    UMAPslow =  5.58 =  24s
+
+
+geo_dwb12-2.GeoPIXE
+    Rh source
+    2000x512
+
+    readbinary = 10m
+    save txt = 4m20s
+
+
+    memlog
+        short30
+            memstart= 4.7G
+            PCA      =  12/20G   =  40s
+            UMAPfast =          =  
+            UMAPslow =  26G    =  5min
+        full
+            memstart= 4.7G
+            PCA      =  12/20G   =  40s
+            UMAPfast =          =  
+            UMAPslow =  26G    =  5min

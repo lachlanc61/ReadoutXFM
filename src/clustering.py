@@ -34,7 +34,7 @@ reducers = [
 """
 reducers = [
     (decomposition.PCA, {}),
-    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3}),
+    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3, "low_memory": True, "verbose": True}),
 ]
 
 kmeans = KMeans(

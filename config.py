@@ -15,6 +15,9 @@ CHARENCODE = 'utf-8'
 DOCOLOURS=False
 DOCLUST=True
 SEPSUMSPEC=True
+SAVEPXSPEC=False
+savename="pxspec.dat"
+
 nclust=10
 
 CMAP='Set1'
@@ -30,10 +33,11 @@ MAPY=126
 DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
-SHORTRUN=False  #stop after first X% of pixels
-shortpct=5    #% of px
+SHORTRUN=True  #stop after first X% of pixels
+shortpct=30    #% of px
 
 #recalc flags
+FORCEREAD=True
 FORCERED=True        #always recalc dimensionality reduction
 FORCEKMEANS=True     #always recalc kmeans 
 
@@ -45,8 +49,8 @@ FORCEKMEANS=True     #always recalc kmeans
 wdirname='data'     #working directory relative to script
 odirname='out'      #output directory relative to script
 
-#infile = "geo_dwb12-2.GeoPIXE"
-infile = "geo2.GeoPIXE"    #assign input file
+infile = "geo_dwb12-2.GeoPIXE"
+#infile = "geo2.GeoPIXE"    #assign input file
 
 
 #instrument config
