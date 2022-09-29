@@ -31,7 +31,7 @@ DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
 SHORTRUN=False  #stop after first X% of pixels
-shortpct=30    #% of px
+shortpct=5    #% of px
 
 #recalc flags
 FORCERED=True        #always recalc dimensionality reduction

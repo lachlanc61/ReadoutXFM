@@ -9,6 +9,8 @@ import umap.umap_ as umap
 
 import config
 
+import src.utils as utils
+
 #-----------------------------------
 #CONSTANTS
 #-----------------------------------
@@ -72,7 +74,7 @@ def reduce(data):
         print(f'REDUCER {i+1} of {nred}: {redname} across {npx} elements')
 
         if config.FORCERED:
-            print("running", redname)
+            #utils.varsizes(locals().items())
             embed = reducer(n_components=2, **args).fit_transform(data)
             np.savetxt(os.path.join(config.odir, redname + ".txt"), embed)
         else:
@@ -82,7 +84,6 @@ def reduce(data):
         clusttimes[i] = time.time() - start_time
         embedding[i,:,:]=embed
         i += 1
-
     return embedding, clusttimes
 
 
@@ -102,10 +103,11 @@ def dokmeans(embedding, npx):
         print(f'KMEANS clustering {i+1} of {nred}, reducer {redname} across {npx} elements')
 
         if config.FORCEKMEANS:
-            print("running", redname)
+            print("running:", redname)
             kmeans.fit(embed)
             categories[i]=kmeans.labels_
             np.savetxt(os.path.join(config.odir, redname + "_kmeans.txt"), categories[i])
+            print("complete:", redname)
         else:
             print("loading from file", redname)
             categories[i]=np.loadtxt(os.path.join(config.odir, redname + "_kmeans.txt"))
@@ -128,8 +130,6 @@ def sumclusters(dataset, catlist):
         datcat=dataset[catlist==i]
         pxincat = datcat.shape[0]   #no. pixels in category i
         specsum[i,:]=(np.sum(datcat,axis=0))/pxincat
-        print(specsum[i,:])
-        #plt.plot(energy, specsum[i,:])
     return specsum
 
 def clustplt(embedding, categories, mapx, clusttimes):

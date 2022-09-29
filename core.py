@@ -133,7 +133,7 @@ with open(f, mode='rb') as file: # rb = read binary
         skipratio=config.shortpct/100
         trunc_y=int(np.ceil(mapy*skipratio))
         totalpx=mapx*trunc_y
-        print(f"SHORT RUN: ending at {skipratio} %")
+        print(f"SHORT RUN: ending at {skipratio*100} %")
 
     print(f"pixels expected: {totalpx}")
     print("---------------------------")
@@ -166,7 +166,7 @@ with open(f, mode='rb') as file: # rb = read binary
 
         #print pixel index every row px
         if i % mapx == 0: 
-            print(f"Row {j}/{mapy} at pixel {i}, byte {idx}/{streamlen} ({100*idx/streamlen:.1f} %)")
+            print(f"Row {j}/{mapy} at pixel {i}, byte {idx} ({100*idx/streamlen:.1f} %)")
             j+=1
 
         #read pixel record into spectrum and header param arrays, 
@@ -224,9 +224,6 @@ with open(f, mode='rb') as file: # rb = read binary
     if config.DOCLUST:
         embedding, clusttimes = clustering.reduce(data)
         categories = clustering.dokmeans(embedding, totalpx)
-        print("categories full")
-        print(categories)
-        print(categories.shape)
 
         clustaverages=np.zeros([len(clustering.reducers),config.nclust,config.NCHAN])
 
