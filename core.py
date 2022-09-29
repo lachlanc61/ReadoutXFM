@@ -127,7 +127,7 @@ with open(f, mode='rb') as file: # rb = read binary
         totalcounts=np.zeros(totalpx)
 
     #initialise data array
-    data=np.zeros((totalpx,config.NCHAN))
+    data=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
 
     i=0 #pixel counter
 
