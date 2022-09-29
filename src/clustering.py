@@ -17,7 +17,7 @@ import src.utils as utils
 KCMAPS=["Accent","Set1"]    #colourmaps for kmeans
 
 #-----------------------------------
-#CLASSES
+#LISTS
 #-----------------------------------
 """
 #full reducer list here
@@ -33,7 +33,8 @@ reducers = [
 ]
 """
 reducers = [
-    (decomposition.PCA, {}),
+#    (decomposition.PCA, {}),
+    (decomposition.IncrementalPCA, {"batch_size": 10000}),
     (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3, "low_memory": True, "verbose": True}),
 ]
 

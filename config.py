@@ -33,11 +33,11 @@ MAPY=126
 DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
-SHORTRUN=True  #stop after first X% of pixels
+SHORTRUN=False  #stop after first X% of pixels
 shortpct=30    #% of px
 
 #recalc flags
-FORCEREAD=True
+FORCEREAD=False
 FORCERED=True        #always recalc dimensionality reduction
 FORCEKMEANS=True     #always recalc kmeans 
 

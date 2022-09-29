@@ -138,75 +138,82 @@ with open(f, mode='rb') as file: # rb = read binary
     print(f"pixels expected: {totalpx}")
     print("---------------------------")
 
-    #assign starting pixel index 
-    idx=headerlen+2 #legnth of header + 2 bytes
+    if config.FORCEREAD:
+        #assign starting pixel index 
+        idx=headerlen+2 #legnth of header + 2 bytes
 
-    #initialise pixel param arrays
-    pxlen=np.zeros(totalpx,dtype=np.uint16)
-    xidx=np.zeros(totalpx,dtype=np.uint16)
-    yidx=np.zeros(totalpx,dtype=np.uint16)
-    det=np.zeros(totalpx,dtype=np.uint8)
-    dt=np.zeros(totalpx,dtype=np.uint16)
-    
-    if config.DOCOLOURS == True:
-        #initalise pixel colour arrays
-        rvals=np.zeros(totalpx)
-        gvals=np.zeros(totalpx)
-        bvals=np.zeros(totalpx)
-        totalcounts=np.zeros(totalpx)
-
-    #initialise data array
-    data=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
-
-    i=0 #pixel counter
-    j=0 #row counter
-
-    #loop through pixels
-    while idx < streamlen:
-
-        #print pixel index every row px
-        if i % mapx == 0: 
-            print(f"Row {j}/{mapy} at pixel {i}, byte {idx} ({100*idx/streamlen:.1f} %)")
-            j+=1
-
-        #read pixel record into spectrum and header param arrays, 
-        # + reassign index at end of read
-        outchan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = bitops.readpxrecord(idx, stream)
-
-        #fill gaps in spectrum 
-        #   (ie. add 0s for all missing chans)
-        outchan, counts = utils.gapfill(outchan,counts, config.NCHAN)
-
-        #warn if recieved channel list is different length to chan array
-        if len(outchan) != len(chan):
-            print("WARNING: unexpected length of channel list")
-      
-        #assign counts into data array - 
-        data[i,:]=counts
-
-        #build colours if required
-        if config.DOCOLOURS == True: rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
+        #initialise pixel param arrays
+        pxlen=np.zeros(totalpx,dtype=np.uint16)
+        xidx=np.zeros(totalpx,dtype=np.uint16)
+        yidx=np.zeros(totalpx,dtype=np.uint16)
+        det=np.zeros(totalpx,dtype=np.uint16)
+        dt=np.zeros(totalpx,dtype=np.uint16)
         
-        #if pixel index greater than expected no. pixels based on map dimensions
-        #   end if we are doing a truncated run
-        #   else throw a warning
-        if i >= (totalpx-1):
-            if (config.SHORTRUN == True):   #i > totalpx is expected for short run
-                print("ending at:", idx)
-                idx=streamlen+1
-                break 
-            else:
-                print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
-        i+=1
+        if config.DOCOLOURS == True:
+            #initalise pixel colour arrays
+            rvals=np.zeros(totalpx)
+            gvals=np.zeros(totalpx)
+            bvals=np.zeros(totalpx)
+            totalcounts=np.zeros(totalpx)
 
-    runtime = time.time() - starttime
+        #initialise data array
+        data=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
 
-    "---------------------------\n"
-    "Memory usage:\n"
-    "---------------------------\n"
-    utils.varsizes(locals().items())
+        i=0 #pixel counter
+        j=0 #row counter
 
-    print(
+        #loop through pixels
+        while idx < streamlen:
+
+            #print pixel index every row px
+            if i % mapx == 0: 
+                print(f"Row {j}/{mapy} at pixel {i}, byte {idx} ({100*idx/streamlen:.1f} %)")
+                j+=1
+
+            #read pixel record into spectrum and header param arrays, 
+            # + reassign index at end of read
+            outchan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = bitops.readpxrecord(idx, stream)
+
+            #fill gaps in spectrum 
+            #   (ie. add 0s for all missing chans)
+            outchan, counts = utils.gapfill(outchan,counts, config.NCHAN)
+
+            #warn if recieved channel list is different length to chan array
+            if len(outchan) != len(chan):
+                print("WARNING: unexpected length of channel list")
+        
+            #assign counts into data array - 
+            data[i,:]=counts
+
+            #build colours if required
+            if config.DOCOLOURS == True: rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
+            
+            #if pixel index greater than expected no. pixels based on map dimensions
+            #   end if we are doing a truncated run
+            #   else throw a warning
+            if i >= (totalpx-1):
+                if (config.SHORTRUN == True):   #i > totalpx is expected for short run
+                    print("ending at:", idx)
+                    idx=streamlen+1
+                    break 
+                else:
+                    print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
+            i+=1
+
+        runtime = time.time() - starttime
+
+        if config.SAVEPXSPEC:
+            print(f"saving spectrum-by-pixel to file")
+            np.savetxt(os.path.join(config.odir,  config.savename + ".dat"), data, fmt='%i')
+        
+        np.savetxt(os.path.join(config.odir, "pxlen.txt"), pxlen, fmt='%i')
+        np.savetxt(os.path.join(config.odir, "xidx.txt"), xidx, fmt='%i')
+        np.savetxt(os.path.join(config.odir, "yidx.txt"), yidx, fmt='%i')
+        np.savetxt(os.path.join(config.odir, "detector.txt"), det, fmt='%i')
+        np.savetxt(os.path.join(config.odir, "dt.txt"), dt, fmt='%i')
+
+
+        print(
         "---------------------------\n"
         "MAP COMPLETE\n"
         "---------------------------\n"
@@ -216,10 +223,21 @@ with open(f, mode='rb') as file: # rb = read binary
         f"time per pixel: {round((runtime/i),6)} s\n"
         "---------------------------"
     )
+    else:
+        print("loading from file", config.savename)
+        data = np.loadtxt(os.path.join(config.odir, config.savename), dtype=np.uint16)
+        pxlen=np.loadtxt(os.path.join(config.odir, "pxlen.txt"), dtype=np.uint16)
+        xidx=np.loadtxt(os.path.join(config.odir, "xidx.txt"), dtype=np.uint16)
+        yidx=np.loadtxt(os.path.join(config.odir, "yidx.txt"), dtype=np.uint16)
+        det=np.loadtxt(os.path.join(config.odir, "detector.txt"), dtype=np.uint16)
+        dt=np.loadtxt(os.path.join(config.odir, "dt.txt"), dtype=np.uint16)
+        print("loaded successfully", config.savename)
+    "---------------------------\n"
+    "Memory usage:\n"
+    "---------------------------\n"
+    utils.varsizes(locals().items())
 
-    if config.SAVEPXSPEC:
-        print(f"saving spectrum-by-pixel to file")
-        np.savetxt(os.path.join(config.odir,  config.savename + ".dat"), data, fmt='%i')
+
 
     #clear the bytestream from memory
     del stream
@@ -249,11 +267,7 @@ with open(f, mode='rb') as file: # rb = read binary
             #plt.plot(energy, clustaverages[i,j,:])
         clustering.clustplt(embedding, categories, mapx, clusttimes)
 
-    np.savetxt(os.path.join(config.odir, "pxlen.txt"), pxlen)
-    np.savetxt(os.path.join(config.odir, "xidx.txt"), xidx)
-    np.savetxt(os.path.join(config.odir, "yidx.txt"), yidx)
-    np.savetxt(os.path.join(config.odir, "detector.txt"), det)
-    np.savetxt(os.path.join(config.odir, "dt.txt"), dt)
+
 
 print("CLEAN EXIT")
 exit()
