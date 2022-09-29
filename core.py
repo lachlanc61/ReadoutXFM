@@ -2,6 +2,7 @@ import os
 import time
 import gc
 import time
+import json
 
 import numpy as np
 from sklearn import decomposition
@@ -49,21 +50,9 @@ read and clust  0.001296
 #INITIALISE
 #-----------------------------------
 
-mapx=config.MAPX
-mapy=config.MAPY
-
 starttime = time.time()             #init timer
-
 chan=np.arange(0,config.NCHAN)      #channels
 energy=chan*config.ESTEP            #energy list
-
-totalpx=mapx*mapy     #map size
-#   if we are skipping some of the file
-#       assign the ratio and adjust totalpx
-if config.SHORTRUN:
-    skipratio=config.shortpct/100
-    trunc_y=int(np.ceil(mapy*skipratio))
-    totalpx=mapx*trunc_y
 
 #-----------------------------------
 #MAIN START
@@ -82,7 +71,7 @@ else:
 print(
     "---------------------------\n"
     "EXTRACTING SPECTRA\n"
-    "---------------------------\n"
+    "---------------------------"
 )
 
 #open the datafile 
@@ -97,16 +86,56 @@ with open(f, mode='rb') as file: # rb = read binary
 
     headerlen=bitops.binunpack(stream,0,"<H")[0]
 
-
-    #check for missing header
+    #check for header
     #   pixels start with "DP" (=20550 as <uint16)
     #   if we find this immediately, header is zero length
+    #provided header is present
+    #   read params from header
     if headerlen == 20550:
         print("WARNING: no header found")
         headerlen=0
+        mapx=config.MAPX
+        mapy=config.MAPY
+        print("WARNING: map dimensions not found")
+        print(f"-------using defaults {mapx},{mapy}")
+    else:
+        """
+        if header present, read as json
+        https://stackoverflow.com/questions/40059654/python-convert-a-bytes-array-into-json-format
+        """
+        #pull slice of byte stream corresponding to header
+        #   bytes[0-2]= headerlen
+        #   headerlen doesn't include trailing '\n' '}', so +2
+        headerstream=stream[2:headerlen+2]
+        #read it as utf8
+        headerstream = headerstream.decode('utf8')
+        
+        #load into dictionary via json builtin
+        headerdict = json.loads(headerstream)
 
+        #create a human-readable dump for debugging
+        headerdump = json.dumps(headerdict, indent=4, sort_keys=False)
+        
+        #get params
+        mapx=headerdict['File Header']['Xres']  #map dimension x
+        mapy=headerdict['File Header']['Yres']  #map dimension y
+
+    #assign map size based on dimensions
+    totalpx=mapx*mapy     
+
+    #print run params
     print(f"header length: {headerlen}")
-    print(f"pixels expected (X*Y): {totalpx}")
+    print(f"map dimensions x,y = {mapx},{mapy}")
+
+    #   if we are skipping some of the file
+    #       assign the ratio and adjust totalpx
+    if config.SHORTRUN:
+        skipratio=config.shortpct/100
+        trunc_y=int(np.ceil(mapy*skipratio))
+        totalpx=mapx*trunc_y
+        print(f"SHORT RUN: ending at {skipratio} %")
+
+    print(f"pixels expected: {totalpx}")
     print("---------------------------")
 
     #assign starting pixel index 
@@ -130,12 +159,15 @@ with open(f, mode='rb') as file: # rb = read binary
     data=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
 
     i=0 #pixel counter
+    j=0 #row counter
 
     #loop through pixels
     while idx < streamlen:
 
-        #print pixel index every 100 px
-        if i % 100 == 0: print(f"Pixel {i} at {idx} bytes, {100*idx/streamlen:.1f} %")
+        #print pixel index every row px
+        if i % mapx == 0: 
+            print(f"Row {j}/{mapy} at pixel {i}, byte {idx}/{streamlen} ({100*idx/streamlen:.1f} %)")
+            j+=1
 
         #read pixel record into spectrum and header param arrays, 
         # + reassign index at end of read
@@ -197,7 +229,7 @@ with open(f, mode='rb') as file: # rb = read binary
         print(categories.shape)
 
         clustaverages=np.zeros([len(clustering.reducers),config.nclust,config.NCHAN])
-        
+
         for i in range(len(clustering.reducers)):
             redname=clustering.getredname(i)
             clustaverages[i]=clustering.sumclusters(data, categories[i])
