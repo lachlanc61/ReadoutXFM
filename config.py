@@ -22,8 +22,8 @@ CMAP='Set1'
 #MAPY=68
 MAPX=256    #for geo2
 MAPY=126
-MAPX=1600    #for dw12
-MAPY=520
+#MAPX=1600    #for dw12
+#MAPY=520
 
 
 #debug flags
@@ -31,7 +31,7 @@ DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
 SHORTRUN=True  #stop after first X% of pixels
-skipratio=10    #% of px
+shortpct=30    #% of px
 
 #recalc flags
 FORCERED=True        #always recalc dimensionality reduction
@@ -45,8 +45,8 @@ FORCEKMEANS=True     #always recalc kmeans
 wdirname='data'     #working directory relative to script
 odirname='out'      #output directory relative to script
 
-infile = "geo_dwb12-2.GeoPIXE"
-#infile = "geo2.GeoPIXE"    #assign input file
+#infile = "geo_dwb12-2.GeoPIXE"
+infile = "geo2.GeoPIXE"    #assign input file
 
 
 #instrument config

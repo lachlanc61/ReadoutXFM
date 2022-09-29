@@ -56,14 +56,20 @@ def getredname(i):
     return repr(reducers[i][0]()).split("(")[0]
 
 def reduce(data):
-    embedding=np.zeros((nred,len(elements),2))
+    """
+    performs dimensionality reduction on data using reducers
+    args:       data
+    returns:    embedding matrix, time per cluster
+    """
+    npx=data.shape[0]
+    embedding=np.zeros((nred,npx,2))
     clusttimes=np.zeros(nred)
 
     i = 0
     for reducer, args in reducers:
         redname=getredname(i)
         start_time = time.time()
-        print(f'REDUCER {i+1} of {nred}: {redname} across {len(elements)} elements')
+        print(f'REDUCER {i+1} of {nred}: {redname} across {npx} elements')
 
         if config.FORCERED:
             print("running", redname)
@@ -80,19 +86,20 @@ def reduce(data):
     return embedding, clusttimes
 
 
-def dokmeans(embedding):
+def dokmeans(embedding, npx):
     """
     performs kmeans on embedding matrices to cluster 2D matrices from reducers 
 
-    args:       set of 2D embedding matrices, shape [nreducers,x,y]
+    args:       set of 2D embedding matrices (shape [nreducers,x,y]), number of pixels in map
     returns:    category-by-pixel matrix, shape [nreducers,chan]
     """
-    categories=np.zeros((nred,len(elements)))
+
+    categories=np.zeros((nred,npx))
     for i in np.arange(0,nred):
         redname=repr(reducers[i][0]()).split("(")[0]
         embed = embedding[i,:,:]
 
-        print(f'KMEANS clustering {i+1} of {nred}, reducer {redname} across {len(elements)} elements')
+        print(f'KMEANS clustering {i+1} of {nred}, reducer {redname} across {npx} elements')
 
         if config.FORCEKMEANS:
             print("running", redname)
@@ -125,7 +132,7 @@ def sumclusters(dataset, catlist):
         #plt.plot(energy, specsum[i,:])
     return specsum
 
-def clustplt(embedding, categories, clusttimes):
+def clustplt(embedding, categories, mapx, clusttimes):
     """
     receives arrays from reducers and kmeans
     + time to cluster
@@ -175,8 +182,8 @@ def clustplt(embedding, categories, clusttimes):
         #assign index for category map for this reducer
         plotid=(i,1)
 
-        #reshape the category list using the image dimension globals
-        catmap=np.reshape(categories[i], [-1,config.MAPX])
+        #reshape the category list back to the map dimensions using xdim
+        catmap=np.reshape(categories[i], [-1,mapx])
 
         #show this category image
         ax[plotid].imshow(catmap, cmap=KCMAPS[i])
@@ -194,5 +201,5 @@ def clustplt(embedding, categories, clusttimes):
 #-----------------------------------
 
 nred = len(reducers)
-elements=np.arange(0,config.MAPX*config.MAPY)
+#elements=np.arange(0,config.MAPX*config.MAPY)
 

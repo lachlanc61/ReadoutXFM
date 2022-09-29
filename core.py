@@ -63,12 +63,16 @@ reducers = [
 #INITIALISE
 #-----------------------------------
 
-
 starttime = time.time()             #init timer
-
 totalpx=config.MAPX*config.MAPY     #map size
 chan=np.arange(0,config.NCHAN)      #channels
 energy=chan*config.ESTEP            #energy list
+
+#   if we are skipping some of the file
+#       assign the ratio and adjust totalpx
+if config.SHORTRUN:
+    skipratio=config.shortpct/100
+    totalpx=int(np.ceil(totalpx*skipratio))
 
 #-----------------------------------
 #MAIN START
@@ -84,8 +88,11 @@ else:
     print(f'FATAL: filetype {config.FTYPE} not recognised')
     exit()
 
-print("---------------")
-
+print(
+    "---------------------------\n"
+    "EXTRACTING SPECTRA\n"
+    "---------------------------\n"
+)
 
 #open the datafile 
 with open(f, mode='rb') as file: # rb = read binary
@@ -94,12 +101,14 @@ with open(f, mode='rb') as file: # rb = read binary
     stream = file.read()         #NB. to read in chunks, add chunk size as read(SIZE)
     streamlen=len(stream)
 
-    print("stream length in bytes ",streamlen)
-    print("first two bytes: ",stream[:2])
+    print(f"stream length in bytes: {streamlen}")
+    print(f"first two bytes: {stream[:2]}")
 
     headerlen=bitops.binunpack(stream,0,"<H")[0]
     print(f"header length: {headerlen}")
-    
+    print(f"pixels expected (X*Y): {totalpx}")
+
+
     #check for missing header
     #   pixels start with "DP" (=20550 as <uint16)
     #   if we find this immediately, header is zero length
@@ -126,6 +135,15 @@ with open(f, mode='rb') as file: # rb = read binary
 
     #initialise data array
     data=np.zeros((totalpx,config.NCHAN))
+
+
+    print(
+        "---------------------------\n"
+        "EXTRACTING SPECTRA\n"
+        "---------------------------\n"
+        f"pixels expected (X*Y): {totalpx}\n"
+        "---------------------------"
+    )
 
     i=0 #pixel counter
 
@@ -157,7 +175,7 @@ with open(f, mode='rb') as file: # rb = read binary
         if i > totalpx:
             print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
 
-        if (config.SHORTRUN == True) and (idx > streamlen*(config.skipratio/100)):
+        if (config.SHORTRUN == True) and (idx > streamlen*(skipratio)):
             print("ending at:", idx)
             idx=streamlen+1
         i+=1
@@ -186,7 +204,7 @@ with open(f, mode='rb') as file: # rb = read binary
     print("DOCLUST", config.DOCLUST)
     if config.DOCLUST:
         embedding, clusttimes = clustering.reduce(data)
-        categories = clustering.dokmeans(embedding)
+        categories = clustering.dokmeans(embedding, totalpx)
         print("categories full")
         print(categories)
         print(categories.shape)
@@ -197,14 +215,13 @@ with open(f, mode='rb') as file: # rb = read binary
             clustaverages[i]=clustering.sumclusters(data, categories[i])
             
             for j in range(config.nclust):
-                
                 print(f'saving reducer {redname} cluster {j} with shape {clustaverages[i,j,:].shape}')
                 np.savetxt(os.path.join(config.odir, "sum_" + redname + "_" + str(j) + ".txt"), np.c_[energy, clustaverages[i,j,:]], fmt=['%1.3e','%1.6e'])
             
             print(f'saving combined file for {redname}')
             np.savetxt(os.path.join(config.odir, "sum_" + redname + ".txt"), np.c_[energy, clustaverages[i,:,:].transpose(1,0)], fmt='%1.5e')             
             #plt.plot(energy, clustaverages[i,j,:])
-        clustering.clustplt(embedding, categories, clusttimes)
+        clustering.clustplt(embedding, categories, config.MAPX, clusttimes)
 
     np.savetxt(os.path.join(config.odir, "pxlen.txt"), pxlen)
     np.savetxt(os.path.join(config.odir, "xidx.txt"), xidx)
