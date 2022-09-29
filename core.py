@@ -63,16 +63,21 @@ reducers = [
 #INITIALISE
 #-----------------------------------
 
+mapx=config.MAPX
+mapy=config.MAPY
+
 starttime = time.time()             #init timer
-totalpx=config.MAPX*config.MAPY     #map size
+
 chan=np.arange(0,config.NCHAN)      #channels
 energy=chan*config.ESTEP            #energy list
 
+totalpx=mapx*mapy     #map size
 #   if we are skipping some of the file
 #       assign the ratio and adjust totalpx
 if config.SHORTRUN:
     skipratio=config.shortpct/100
-    totalpx=int(np.ceil(totalpx*skipratio))
+    trunc_y=int(np.ceil(mapy*skipratio))
+    totalpx=mapx*trunc_y
 
 #-----------------------------------
 #MAIN START
@@ -105,8 +110,6 @@ with open(f, mode='rb') as file: # rb = read binary
     print(f"first two bytes: {stream[:2]}")
 
     headerlen=bitops.binunpack(stream,0,"<H")[0]
-    print(f"header length: {headerlen}")
-    print(f"pixels expected (X*Y): {totalpx}")
 
 
     #check for missing header
@@ -115,7 +118,11 @@ with open(f, mode='rb') as file: # rb = read binary
     if headerlen == 20550:
         print("WARNING: no header found")
         headerlen=0
-    
+
+    print(f"header length: {headerlen}")
+    print(f"pixels expected (X*Y): {totalpx}")
+    print("---------------------------")
+
     #assign starting pixel index 
     idx=headerlen+2 #legnth of header + 2 bytes
 
@@ -135,15 +142,6 @@ with open(f, mode='rb') as file: # rb = read binary
 
     #initialise data array
     data=np.zeros((totalpx,config.NCHAN))
-
-
-    print(
-        "---------------------------\n"
-        "EXTRACTING SPECTRA\n"
-        "---------------------------\n"
-        f"pixels expected (X*Y): {totalpx}\n"
-        "---------------------------"
-    )
 
     i=0 #pixel counter
 
@@ -171,13 +169,16 @@ with open(f, mode='rb') as file: # rb = read binary
         #build colours if required
         if config.DOCOLOURS == True: rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
         
-        #warn if i is unexpectedly high - would mostly happen if header is wrong
-        if i > totalpx:
-            print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
-
-        if (config.SHORTRUN == True) and (idx > streamlen*(skipratio)):
-            print("ending at:", idx)
-            idx=streamlen+1
+        #if pixel index greater than expected no. pixels based on map dimensions
+        #   end if we are doing a truncated run
+        #   else throw a warning
+        if i >= (totalpx-1):
+            if (config.SHORTRUN == True):   #i > totalpx is expected for short run
+                print("ending at:", idx)
+                idx=streamlen+1
+                break 
+            else:
+                print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
         i+=1
 
     runtime = time.time() - starttime
@@ -221,7 +222,7 @@ with open(f, mode='rb') as file: # rb = read binary
             print(f'saving combined file for {redname}')
             np.savetxt(os.path.join(config.odir, "sum_" + redname + ".txt"), np.c_[energy, clustaverages[i,:,:].transpose(1,0)], fmt='%1.5e')             
             #plt.plot(energy, clustaverages[i,j,:])
-        clustering.clustplt(embedding, categories, config.MAPX, clusttimes)
+        clustering.clustplt(embedding, categories, mapx, clusttimes)
 
     np.savetxt(os.path.join(config.odir, "pxlen.txt"), pxlen)
     np.savetxt(os.path.join(config.odir, "xidx.txt"), xidx)
