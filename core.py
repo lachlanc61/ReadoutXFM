@@ -13,6 +13,7 @@ import src.utils as utils
 import src.bitops as bitops
 import src.colour as colour
 import src.clustering as clustering
+import src.fitting as fitting
 """
 Parses spectrum-by-pixel maps from IXRF XFM
 
@@ -149,6 +150,7 @@ with open(f, mode='rb') as file: # rb = read binary
 
         #initialise data array
         data=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
+        if config.DOBG: corrected=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
 
         i=0 #pixel counter
         j=0 #row counter
@@ -173,8 +175,14 @@ with open(f, mode='rb') as file: # rb = read binary
             if len(outchan) != len(chan):
                 print("WARNING: unexpected length of channel list")
         
-            #assign counts into data array - 
+            #assign counts into data array
             data[i,:]=counts
+
+            #if we are attempting to fit a background
+            #   apply it, and save the corrected spectra
+            if config.DOBG: 
+                counts=fitting.fitbaseline(counts)
+                corrected[i,:]=counts
 
             #build colours if required
             if config.DOCOLOURS == True: rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
@@ -235,7 +243,7 @@ with open(f, mode='rb') as file: # rb = read binary
     gc.collect()
 
     if config.DOCOLOURS == True:
-        rgbarray=colour.clcomplete(rvals, gvals, bvals, totalcounts, mapx, nrows)
+        rgbarray=colour.clcomplete(rvals, gvals, bvals, mapx, nrows)
         colour.clshow(rgbarray)
 
     print("DOCLUST", config.DOCLUST)

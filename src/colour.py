@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+import pybaselines.smooth
 
 #from colorsys import hsv_to_rgb
 
@@ -18,10 +19,12 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 MIN_E=1.04      #minimum energy of interest
 MIN_XE=-5       #extended minimum x for ir
 ELASTIC=17.44   #energy of tube Ka
+EOFFSET=3.0
 MAX_E=30        #maximum energy of interest
 SDS=9           #standard deviations
 RGBLOG=True     #map RGB as log of intensity
 NCOLS=5         #no. colours
+
 
 #-----------------------------------
 #INITIALISE
@@ -44,57 +47,9 @@ gmu=rmu+sd*3        #green
 bmu=ELASTIC-sd*1.5    #blue
 uvmu=ELASTIC+sd*1.5   #uv
 
-#-------------------------------------
+#-----------------------------------
 #FUNCTIONS
 #-----------------------------------
-
-def initialise2(e):
-    """
-    initialise the colour gaussians 
-    export to module-wide variables via "this"
-
-    receives energy channel list
-    returns None
-
-    
-    NB: not certain this is optimal - just need to get e somehow
-        could also create in parallel via config.NCHAN & ESTEP
-    """
-    #extend x-space to negative values 
-    #   (needed to normalise ir gaussian)
-    xe=np.arange(-5,0,config.ESTEP)
-    xe=np.append(xe,e)
-
-    #create ir gaussian, then truncate back
-    irgauss=utils.normgauss(xe, irmu, sd, 1)
-    irgauss=irgauss[xzer:]
-
-    #create other gaussians
-    #   normalised to 1
-    #   note: e, rmu etc = module-level variables created on import
-    rgauss=utils.normgauss(e, rmu, sd, 1)
-    ggauss=utils.normgauss(e, gmu, sd, 1)
-    bgauss=utils.normgauss(e, bmu, sd, 1)
-    uvgauss=utils.normgauss(e, uvmu, sd, 1)
-
-    #combine into colour assignment channels
-    red=rgauss+uvgauss
-    green=ggauss
-    blue=bgauss+irgauss
-
-    #normalise so that sum(red,green,blue) always = 1.0
-    mult=np.divide(1,red+green+blue)
-    red=red*mult
-    green=green*mult
-    blue=blue*mult
-
-    #assign to module-wide variables
-    this.red=red
-    this.green=green
-    this.blue=blue
-
-    return None
-
 
 def initialise(e):
     """
@@ -108,7 +63,7 @@ def initialise(e):
     NB: not certain this is optimal - just need to get e somehow
         could also create in parallel via config.NCHAN & ESTEP
     """
-    kachan=utils.lookfor(e,float(ELASTIC))  #K-alpha channel
+    kachan=utils.lookfor(e,float(ELASTIC+EOFFSET))  #K-alpha channel
     npad=config.NCHAN-kachan
 
     hsv=cm.get_cmap('hsv', kachan)
@@ -131,23 +86,12 @@ def initialise(e):
 
 def spectorgb(e, y):
     """
-    maps spectrum onto R G B channels weighted by series of gaussians
-
-        R G B gaussians at ~1/3 2/3 3/3 across region of interest
-
-        + two extended gaussians to cause purple shift at low and high 
-            "ir"(coloured blue) and "uv"(coloured red)
-
-        not properly linear, peaks halfway between gaussians currently weighted ~20% lower than centres
-
-        ATTN: reads local constants and initialised vars eg. RGBLOG, xzer
-
-
-        speedup:    
-            for j:                  0.007625 s
-            vectorise channels:     0.004051 s
-            pre-init gaussians:     0.002641 s    
+    maps spectrum onto R G B channels 
+    use HSV colourmap to generate
     """
+    #bg = pybaselines.smooth.snip(y,SNIPWINDOW)[0]
+    #y=y-bg
+
     #if doing log y
     if RGBLOG:
         #convert y to float for log
@@ -156,17 +100,50 @@ def spectorgb(e, y):
         y=np.log(yf, out=np.zeros_like(yf), where=(yf!=0))
 
     #multiply y vectorwise onto channels (t/px: 0.004051 s)
-    rsum=np.sum(y*(this.red)*max(y))/len(e)
-    gsum=np.sum(y*(this.green)*max(y))/len(e)
-    bsum=np.sum(y*(this.blue)*max(y))/len(e)
+    rsum=np.sum(y*(this.red))/len(e)
+    gsum=np.sum(y*(this.green))/len(e)
+    bsum=np.sum(y*(this.blue))/len(e)
 
     ysum=np.sum(y)
     
+#    max=np.max([rsum,bsum,gsum])
+
     return(rsum,gsum,bsum,ysum)
 
 
 
-def clcomplete(rvals, gvals, bvals, totalcounts, mapx, mapy):
+def clcomplete(rvals, gvals, bvals, mapx, mapy):
+    """
+    creates final colour-mapped image
+
+    recives R G B arrays per pixel, and total counts per pixel
+
+    displays plot
+    """
+    print(f'rgb maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
+    chmax=np.max([np.max(rvals),np.max(gvals),np.max(bvals)])
+    rvals=rvals/chmax
+    gvals=gvals/chmax
+    bvals=bvals/chmax
+
+    print(f'scaled maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
+
+    np.savetxt(os.path.join(config.odir, "rvals.txt"), rvals)
+    np.savetxt(os.path.join(config.odir, "gvals.txt"), gvals)
+    np.savetxt(os.path.join(config.odir, "bvals.txt"), bvals)
+
+    rimg=np.reshape(rvals, (-1, mapx))
+    gimg=np.reshape(gvals, (-1, mapx))
+    bimg=np.reshape(bvals, (-1, mapx))
+
+    rgbarray = np.zeros((mapy,mapx,3), 'uint8')
+    rgbarray[..., 0] = rimg*256
+    rgbarray[..., 1] = gimg*256
+    rgbarray[..., 2] = bimg*256
+    
+    return(rgbarray)
+
+def clcomplete2(rvals, gvals, bvals, totalcounts, mapx, mapy):
     """
     creates final colour-mapped image
 
@@ -206,8 +183,18 @@ def clcomplete(rvals, gvals, bvals, totalcounts, mapx, mapy):
     
     return(rgbarray)
 
+
 def clshow(rgbarray):
     plt.imshow(rgbarray)
     plt.savefig(os.path.join(config.odir, 'colours.png'), dpi=150)
     plt.show()   
 
+
+"""
+speedup:    
+    for j:                  0.007625 s
+    vectorise channels:     0.004051 s
+    pre-init gaussians:     0.002641 s   
+    colourmap:              0.001886 s
+    fit snip:               0.002734 s
+"""

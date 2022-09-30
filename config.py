@@ -16,6 +16,7 @@ DOCOLOURS=True
 DOCLUST=True
 SEPSUMSPEC=True
 SAVEPXSPEC=True
+DOBG=True
 savename="pxspec"
 
 nclust=10

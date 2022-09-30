@@ -3,7 +3,6 @@ import sys
 import numpy as np
 from scipy.stats import norm
 
-
 def lookfor(x, val):
   difference_array = np.absolute(x-val)
   index = difference_array.argmin()
@@ -77,3 +76,6 @@ def varsizes(allitems):
   for name, size in sorted(((name, sys.getsizeof(value)) for name, value in allitems),
                           key= lambda x: -x[1])[:10]:
       print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+
+
