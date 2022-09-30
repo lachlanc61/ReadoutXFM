@@ -35,7 +35,8 @@ reducers = [
 reducers = [
     (decomposition.PCA, {}),
 #    (decomposition.IncrementalPCA, {"batch_size": 10000}),
-    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3, "low_memory": True, "verbose": True}),
+#    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3, "low_memory": True, "verbose": True}),
+    (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3, "low_memory": True}),
 ]
 
 kmeans = KMeans(

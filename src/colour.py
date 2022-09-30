@@ -24,7 +24,9 @@ NCOLS=5         #no. colours
 #INITIALISE
 #-----------------------------------
 
-# this is a pointer to the module object instance itself.
+# create a pointer to the module object instance itself
+#       functions like "self" for module
+#   https://stackoverflow.com/questions/1977362/how-to-create-module-wide-variables-in-python
 this = sys.modules[__name__]
 
 #vars for gaussians
@@ -39,34 +41,40 @@ gmu=rmu+sd*3        #green
 bmu=MAX_E-sd*1.5    #blue
 uvmu=MAX_E+sd*1.5   #uv
 
-
 #-------------------------------------
 #FUNCTIONS
 #-----------------------------------
 
-"""
+
 def initialise(e):
+    """
+    initialise the colour gaussians as module-wide variables via "this"
 
-    initialise the colour gaussians as module-wide variables
+    receives energy channel list
+    returns None
 
-
+    
+    NB: not certain this is optimal - just need to get e somehow
+        could also create in parallel via config.NCHAN & ESTEP
+    """
     #extend x-space to negative values 
     #   (needed to normalise ir gaussian)
     xe=np.arange(-5,0,config.ESTEP)
     xe=np.append(xe,e)
 
     #create ir gaussian, then truncate back
-    ir=utils.normgauss(xe, irmu, sd, max(y))
-    ir=ir[xzer:]
+    this.ir=utils.normgauss(xe, irmu, sd, 1)
+    this.ir=this.ir[xzer:]
 
     #create other gaussians
     #   normalised to max(y)
     #   note: e, rmu etc = module-level variables created on import
-    red=utils.normgauss(e, rmu, sd, max(y))
-    green=utils.normgauss(e, gmu, sd, max(y))
-    blue=utils.normgauss(e, bmu, sd, max(y))
-    uv=utils.normgauss(e, uvmu, sd, max(y))
-"""
+    this.red=utils.normgauss(e, rmu, sd, 1)
+    this.green=utils.normgauss(e, gmu, sd, 1)
+    this.blue=utils.normgauss(e, bmu, sd, 1)
+    this.uv=utils.normgauss(e, uvmu, sd, 1)
+
+    return None
 
 def spectorgb(e, y):
     """
@@ -80,6 +88,12 @@ def spectorgb(e, y):
         not properly linear, peaks halfway between gaussians currently weighted ~20% lower than centres
 
         ATTN: reads local constants and initialised vars eg. RGBLOG, xzer
+
+
+        speedup:    
+            for j:                  0.007625 s
+            vectorise channels:     0.004051 s
+            pre-init gaussians:     0.002641 s    
     """
     #if doing log y
     if RGBLOG:
@@ -88,31 +102,14 @@ def spectorgb(e, y):
         #log y, excluding 0 values
         y=np.log(yf, out=np.zeros_like(yf), where=(yf!=0))
 
-    #extend x-space to negative values 
-    #   (needed to normalise ir gaussian)
-    xe=np.arange(-5,0,config.ESTEP)
-    xe=np.append(xe,e)
-
-    #create ir gaussian, then truncate back
-    ir=utils.normgauss(xe, irmu, sd, max(y))
-    ir=ir[xzer:]
-
-    #create other gaussians
-    #   normalised to max(y)
-    #   note: e, rmu etc = module-level variables created on import
-    red=utils.normgauss(e, rmu, sd, max(y))
-    green=utils.normgauss(e, gmu, sd, max(y))
-    blue=utils.normgauss(e, bmu, sd, max(y))
-    uv=utils.normgauss(e, uvmu, sd, max(y))
-
     #multiply y vectorwise onto channels (t/px: 0.004051 s)
-    rsum=np.sum(y*(red+uv))/len(e)
-    gsum=np.sum(y*(green))/len(e)
-    bsum=np.sum(y*(blue+ir))/len(e)
+    rsum=np.sum(y*(this.red+this.uv)*max(y))/len(e)
+    gsum=np.sum(y*(this.green)*max(y))/len(e)
+    bsum=np.sum(y*(this.blue+this.ir)*max(y))/len(e)
 
-    yret=np.sum(y)
+    ysum=np.sum(y)
     
-    return(rsum,gsum,bsum,yret)
+    return(rsum,gsum,bsum,ysum)
 
 
 

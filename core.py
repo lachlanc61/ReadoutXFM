@@ -43,6 +43,9 @@ starttime = time.time()             #init timer
 chan=np.arange(0,config.NCHAN)      #channels
 energy=chan*config.ESTEP            #energy list
 
+#if we are creating colourmaps, set up colour routine
+if config.DOCOLOURS == True: colour.initialise(energy)
+
 #-----------------------------------
 #MAIN START
 #-----------------------------------
@@ -188,6 +191,8 @@ with open(f, mode='rb') as file: # rb = read binary
                     print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
             i+=1
 
+        nrows=j #store no. rows read successfully
+
         runtime = time.time() - starttime
 
         if config.SAVEPXSPEC:
@@ -232,7 +237,7 @@ with open(f, mode='rb') as file: # rb = read binary
     gc.collect()
 
     if config.DOCOLOURS == True:
-        rgbarray=colour.clcomplete(rvals, gvals, bvals, totalcounts)
+        rgbarray=colour.clcomplete(rvals, gvals, bvals, totalcounts, mapx, nrows)
         colour.clshow(rgbarray)
 
     print("DOCLUST", config.DOCLUST)
