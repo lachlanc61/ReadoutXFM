@@ -3,6 +3,12 @@ import sys
 import numpy as np
 from scipy.stats import norm
 
+
+def lookfor(x, val):
+  difference_array = np.absolute(x-val)
+  index = difference_array.argmin()
+  return index
+
 def normgauss(x, mu, sig1, amp):
   """
   creates a gaussian along x

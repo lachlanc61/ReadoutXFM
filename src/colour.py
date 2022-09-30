@@ -8,6 +8,9 @@ import config
 import src.utils as utils
 import matplotlib.pyplot as plt
 
+from matplotlib import cm
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+
 #-----------------------------------
 #MODIFIABLE CONSTANTS
 #-----------------------------------
@@ -17,7 +20,7 @@ MIN_XE=-5       #extended minimum x for ir
 ELASTIC=17.44   #energy of tube Ka
 MAX_E=30        #maximum energy of interest
 SDS=9           #standard deviations
-RGBLOG=False     #map RGB as log of intensity
+RGBLOG=True     #map RGB as log of intensity
 NCOLS=5         #no. colours
 
 #-----------------------------------
@@ -45,7 +48,7 @@ uvmu=ELASTIC+sd*1.5   #uv
 #FUNCTIONS
 #-----------------------------------
 
-def initialise(e):
+def initialise2(e):
     """
     initialise the colour gaussians 
     export to module-wide variables via "this"
@@ -89,6 +92,40 @@ def initialise(e):
     this.red=red
     this.green=green
     this.blue=blue
+
+    return None
+
+
+def initialise(e):
+    """
+    initialise the colour gaussians 
+    export to module-wide variables via "this"
+
+    receives energy channel list
+    returns None
+
+    
+    NB: not certain this is optimal - just need to get e somehow
+        could also create in parallel via config.NCHAN & ESTEP
+    """
+    kachan=utils.lookfor(e,float(ELASTIC))  #K-alpha channel
+    npad=config.NCHAN-kachan
+
+    hsv=cm.get_cmap('hsv', kachan)
+    cmap=hsv(range(kachan))
+
+    cred=cmap[:,0]
+    cgreen=cmap[:,1]
+    cblue=cmap[:,2]
+
+    cred=np.pad(cred, (0, npad), 'constant', constant_values=(0, 1))
+    cgreen=np.pad(cgreen, (0, npad), 'constant', constant_values=(0, 0))
+    cblue=np.pad(cblue, (0, npad), 'constant', constant_values=(0, 0))    
+
+    #assign to module-wide variables
+    this.red=cred
+    this.green=cgreen
+    this.blue=cblue
 
     return None
 
