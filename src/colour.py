@@ -74,15 +74,18 @@ def initialise(e):
     bgauss=utils.normgauss(e, bmu, sd, 1)
     uvgauss=utils.normgauss(e, uvmu, sd, 1)
 
+    #combine into colour assignment channels
     red=rgauss+uvgauss
     green=ggauss
     blue=bgauss+irgauss
 
+    #normalise so that sum(red,green,blue) always = 1.0
     mult=np.divide(1,red+green+blue)
     red=red*mult
     green=green*mult
     blue=blue*mult
 
+    #assign to module-wide variables
     this.red=red
     this.green=green
     this.blue=blue
