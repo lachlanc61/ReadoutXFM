@@ -197,4 +197,5 @@ speedup:
     pre-init gaussians:     0.002641 s   
     colourmap:              0.001886 s
     fit snip:               0.002734 s
+    fit complex snip:       0.002919 s
 """

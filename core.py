@@ -43,6 +43,7 @@ read and clust  0.001296
 starttime = time.time()             #init timer
 chan=np.arange(0,config.NCHAN)      #channels
 energy=chan*config.ESTEP            #energy list
+noisecorrect=True                   #apply adjustment to SNIP to fit noisy pixels
 
 #if we are creating colourmaps, set up colour routine
 if config.DOCOLOURS == True: colour.initialise(energy)
@@ -181,7 +182,7 @@ with open(f, mode='rb') as file: # rb = read binary
             #if we are attempting to fit a background
             #   apply it, and save the corrected spectra
             if config.DOBG: 
-                counts=fitting.fitbaseline(counts)
+                counts, bg = fitting.fitbaseline(counts, noisecorrect)
                 corrected[i,:]=counts
 
             #build colours if required
