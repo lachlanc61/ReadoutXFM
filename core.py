@@ -13,17 +13,6 @@ import src.utils as utils
 import src.bitops as bitops
 import src.colour as colour
 import src.clustering as clustering
-
-"""
-INITIALISE data TO WHOLE MAP EVEN IF USING EARLY STOP
-.: huge memory req
-can scale that down
-
-also consider throwing away some, scaling down floats/ints etc
-
-"""
-
-
 """
 Parses spectrum-by-pixel maps from IXRF XFM
 
@@ -81,8 +70,7 @@ with open(f, mode='rb') as file: # rb = read binary
     stream = file.read()         #NB. to read in chunks, add chunk size as read(SIZE)
     streamlen=len(stream)
 
-    print(f"stream length in bytes: {streamlen}")
-    print(f"first two bytes: {stream[:2]}")
+    print(f"filesize: {streamlen} (bytes)")
 
     headerlen=bitops.binunpack(stream,0,"<H")[0]
 
@@ -124,8 +112,8 @@ with open(f, mode='rb') as file: # rb = read binary
     totalpx=mapx*mapy     
 
     #print run params
-    print(f"header length: {headerlen}")
-    print(f"map dimensions x,y = {mapx},{mapy}")
+    print(f"header length: {headerlen} (bytes)")
+    print(f"map dimensions: {mapx} x {mapy}")
 
     #   if we are skipping some of the file
     #       assign the ratio and adjust totalpx
@@ -167,7 +155,7 @@ with open(f, mode='rb') as file: # rb = read binary
 
             #print pixel index every row px
             if i % mapx == 0: 
-                print(f"Row {j}/{mapy} at pixel {i}, byte {idx} ({100*idx/streamlen:.1f} %)")
+                print(f"Row {j}/{mapy} at pixel {i}, byte {idx} ({100*idx/streamlen:.1f} %)", end='\r')
                 j+=1
 
             #read pixel record into spectrum and header param arrays, 
@@ -175,7 +163,7 @@ with open(f, mode='rb') as file: # rb = read binary
             outchan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = bitops.readpxrecord(idx, stream)
 
             #fill gaps in spectrum 
-            #   (ie. add 0s for all missing chans)
+            #   (ie. assign all zero-count chans = 0)
             outchan, counts = utils.gapfill(outchan,counts, config.NCHAN)
 
             #warn if recieved channel list is different length to chan array

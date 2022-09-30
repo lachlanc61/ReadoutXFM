@@ -12,11 +12,11 @@ PXFLAG="DP"
 NCHAN=4096
 ESTEP=0.01
 CHARENCODE = 'utf-8'
-DOCOLOURS=False
+DOCOLOURS=True
 DOCLUST=True
 SEPSUMSPEC=True
-SAVEPXSPEC=False
-savename="pxspec.dat"
+SAVEPXSPEC=True
+savename="pxspec"
 
 nclust=10
 
@@ -33,11 +33,11 @@ MAPY=126
 DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
-SHORTRUN=False  #stop after first X% of pixels
-shortpct=30    #% of px
+SHORTRUN=True  #stop after first X% of pixels
+shortpct=10    #% of lines
 
 #recalc flags
-FORCEREAD=False
+FORCEREAD=True
 FORCERED=True        #always recalc dimensionality reduction
 FORCEKMEANS=True     #always recalc kmeans 
 
@@ -49,9 +49,10 @@ FORCEKMEANS=True     #always recalc kmeans
 wdirname='data'     #working directory relative to script
 odirname='out'      #output directory relative to script
 
-infile = "geo_dwb12-2.GeoPIXE"
-#infile = "geo2.GeoPIXE"    #assign input file
-
+#infile = "geo_nfpy11.GeoPIXE"
+#infile = "geo_ln_chle.GeoPIXE"
+#infile = "geo_dwb12-2.GeoPIXE"
+infile = "geo2.GeoPIXE"    #assign input file
 
 #instrument config
 detid="A"   #detector ID - not needed for single detector maps
