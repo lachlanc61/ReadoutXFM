@@ -15,8 +15,6 @@ LOWCUT=80       #low cut point for SNIP
 def fitbaseline(y,noisy):
     bg = pybaselines.smooth.snip(y[LOWCUT:],SNIPWINDOW)[0]
     bg=np.pad(bg, (LOWCUT, 0), 'constant', constant_values=(bg[0], 0))
-
-    
     if noisy:
         bg=3*bg+1
     y=y-bg
