@@ -182,7 +182,7 @@ with open(f, mode='rb') as file: # rb = read binary
             #if pixel index greater than expected no. pixels based on map dimensions
             #   end if we are doing a truncated run
             #   else throw a warning
-            if i >= (totalpx-1):
+            if i > (totalpx-1):
                 if (config.SHORTRUN == True):   #i > totalpx is expected for short run
                     print("ending at:", idx)
                     idx=streamlen+1
@@ -230,8 +230,6 @@ with open(f, mode='rb') as file: # rb = read binary
     "---------------------------\n"
     utils.varsizes(locals().items())
 
-
-
     #clear the bytestream from memory
     del stream
     gc.collect()
@@ -259,7 +257,6 @@ with open(f, mode='rb') as file: # rb = read binary
             np.savetxt(os.path.join(config.odir, "sum_" + redname + ".txt"), np.c_[energy, clustaverages[i,:,:].transpose(1,0)], fmt='%1.5e')             
             #plt.plot(energy, clustaverages[i,j,:])
         clustering.clustplt(embedding, categories, mapx, clusttimes)
-
 
 
 print("CLEAN EXIT")

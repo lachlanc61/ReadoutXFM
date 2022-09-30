@@ -17,7 +17,7 @@ MIN_XE=-5       #extended minimum x for ir
 ELASTIC=17.44   #energy of tube Ka
 MAX_E=30        #maximum energy of interest
 SDS=9           #standard deviations
-RGBLOG=True     #map RGB as log of intensity
+RGBLOG=False     #map RGB as log of intensity
 NCOLS=5         #no. colours
 
 #-----------------------------------
@@ -33,22 +33,22 @@ this = sys.modules[__name__]
 #   x-zero
 xzer=np.floor(-(MIN_XE/config.ESTEP)).astype(int)   
 #   standard deviation 
-sd=(MAX_E-MIN_E)/(SDS)  
+sd=(ELASTIC-MIN_E)/(SDS)  
 #   means for each
 irmu=MIN_E-sd*1.5   #ir
 rmu=MIN_E+sd*1.5    #red
 gmu=rmu+sd*3        #green
-bmu=MAX_E-sd*1.5    #blue
-uvmu=MAX_E+sd*1.5   #uv
+bmu=ELASTIC-sd*1.5    #blue
+uvmu=ELASTIC+sd*1.5   #uv
 
 #-------------------------------------
 #FUNCTIONS
 #-----------------------------------
 
-
 def initialise(e):
     """
-    initialise the colour gaussians as module-wide variables via "this"
+    initialise the colour gaussians 
+    export to module-wide variables via "this"
 
     receives energy channel list
     returns None
@@ -63,16 +63,29 @@ def initialise(e):
     xe=np.append(xe,e)
 
     #create ir gaussian, then truncate back
-    this.ir=utils.normgauss(xe, irmu, sd, 1)
-    this.ir=this.ir[xzer:]
+    irgauss=utils.normgauss(xe, irmu, sd, 1)
+    irgauss=irgauss[xzer:]
 
     #create other gaussians
-    #   normalised to max(y)
+    #   normalised to 1
     #   note: e, rmu etc = module-level variables created on import
-    this.red=utils.normgauss(e, rmu, sd, 1)
-    this.green=utils.normgauss(e, gmu, sd, 1)
-    this.blue=utils.normgauss(e, bmu, sd, 1)
-    this.uv=utils.normgauss(e, uvmu, sd, 1)
+    rgauss=utils.normgauss(e, rmu, sd, 1)
+    ggauss=utils.normgauss(e, gmu, sd, 1)
+    bgauss=utils.normgauss(e, bmu, sd, 1)
+    uvgauss=utils.normgauss(e, uvmu, sd, 1)
+
+    red=rgauss+uvgauss
+    green=ggauss
+    blue=bgauss+irgauss
+
+    mult=np.divide(1,red+green+blue)
+    red=red*mult
+    green=green*mult
+    blue=blue*mult
+
+    this.red=red
+    this.green=green
+    this.blue=blue
 
     return None
 
@@ -103,9 +116,9 @@ def spectorgb(e, y):
         y=np.log(yf, out=np.zeros_like(yf), where=(yf!=0))
 
     #multiply y vectorwise onto channels (t/px: 0.004051 s)
-    rsum=np.sum(y*(this.red+this.uv)*max(y))/len(e)
+    rsum=np.sum(y*(this.red)*max(y))/len(e)
     gsum=np.sum(y*(this.green)*max(y))/len(e)
-    bsum=np.sum(y*(this.blue+this.ir)*max(y))/len(e)
+    bsum=np.sum(y*(this.blue)*max(y))/len(e)
 
     ysum=np.sum(y)
     
@@ -155,5 +168,6 @@ def clcomplete(rvals, gvals, bvals, totalcounts, mapx, mapy):
 
 def clshow(rgbarray):
     plt.imshow(rgbarray)
+    plt.savefig(os.path.join(config.odir, 'colours.png'), dpi=150)
     plt.show()   
 
