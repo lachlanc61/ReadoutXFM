@@ -110,7 +110,7 @@ def spectorgb(e, y):
 
     return(rsum,gsum,bsum,ysum)
 
-def complete(rvals, gvals, bvals, mapx, mapy):
+def complete(rvals, gvals, bvals, mapx, mapy, odir):
     """
     creates final colour-mapped image
 
@@ -126,9 +126,9 @@ def complete(rvals, gvals, bvals, mapx, mapy):
 
     print(f'scaled maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
 
-    np.savetxt(os.path.join(config.odir, "rvals.txt"), rvals)
-    np.savetxt(os.path.join(config.odir, "gvals.txt"), gvals)
-    np.savetxt(os.path.join(config.odir, "bvals.txt"), bvals)
+    np.savetxt(os.path.join(odir, "rvals.txt"), rvals)
+    np.savetxt(os.path.join(odir, "gvals.txt"), gvals)
+    np.savetxt(os.path.join(odir, "bvals.txt"), bvals)
 
     rimg=np.reshape(rvals, (-1, mapx))
     gimg=np.reshape(gvals, (-1, mapx))
@@ -139,11 +139,11 @@ def complete(rvals, gvals, bvals, mapx, mapy):
     rgbarray[..., 1] = gimg*256
     rgbarray[..., 2] = bimg*256
     
-    show(rgbarray)
+    show(rgbarray, odir)
     return(rgbarray)
 
 
-def show(rgbarray):
+def show(rgbarray, odir):
     plt.imshow(rgbarray)
-    plt.savefig(os.path.join(config.odir, 'colours.png'), dpi=150)
+    plt.savefig(os.path.join(odir, 'colours.png'), dpi=150)
     plt.show()   

@@ -59,7 +59,7 @@ def getredname(i):
     """
     return repr(reducers[i][0]()).split("(")[0]
 
-def reduce(data):
+def reduce(data, odir):
     """
     performs dimensionality reduction on data using reducers
     args:       data
@@ -78,10 +78,10 @@ def reduce(data):
         if config.FORCERED:
             #utils.varsizes(locals().items())
             embed = reducer(n_components=2, **args).fit_transform(data)
-            np.savetxt(os.path.join(config.odir, redname + ".txt"), embed)
+            np.savetxt(os.path.join(odir, redname + ".txt"), embed)
         else:
             print("loading from file", redname)
-            embed = np.loadtxt(os.path.join(config.odir, redname + ".txt"))
+            embed = np.loadtxt(os.path.join(odir, redname + ".txt"))
         
         clusttimes[i] = time.time() - start_time
         embedding[i,:,:]=embed
@@ -89,7 +89,7 @@ def reduce(data):
     return embedding, clusttimes
 
 
-def dokmeans(embedding, npx):
+def dokmeans(embedding, npx, odir):
     """
     performs kmeans on embedding matrices to cluster 2D matrices from reducers 
 
@@ -107,10 +107,10 @@ def dokmeans(embedding, npx):
         if config.FORCEKMEANS:
             kmeans.fit(embed)
             categories[i]=kmeans.labels_
-            np.savetxt(os.path.join(config.odir, redname + "_kmeans.txt"), categories[i])
+            np.savetxt(os.path.join(odir, redname + "_kmeans.txt"), categories[i])
         else:
             print("loading from file", redname)
-            categories[i]=np.loadtxt(os.path.join(config.odir, redname + "_kmeans.txt"))
+            categories[i]=np.loadtxt(os.path.join(odir, redname + "_kmeans.txt"))
     return categories
 
 def sumclusters(dataset, catlist):
@@ -132,7 +132,7 @@ def sumclusters(dataset, catlist):
         specsum[i,:]=(np.sum(datcat,axis=0))/pxincat
     return specsum
 
-def clustplt(embedding, categories, mapx, clusttimes):
+def clustplt(embedding, categories, mapx, clusttimes, odir):
     """
     receives arrays from reducers and kmeans
     + time to cluster
@@ -192,18 +192,18 @@ def clustplt(embedding, categories, mapx, clusttimes):
     plt.setp(ax, xticks=[], yticks=[])
 
     #save and show
-    plt.savefig(os.path.join(config.odir, 'clusters.png'), dpi=150)
+    plt.savefig(os.path.join(odir, 'clusters.png'), dpi=150)
     plt.show()
     return
 
 
-def complete(data, energy, totalpx, mapx, mapy):
+def complete(data, energy, totalpx, mapx, mapy, odir):
 
     #   produce reduced-dim embedding per reducer
-    embedding, clusttimes = reduce(data)
+    embedding, clusttimes = reduce(data, odir)
 
     #   cluster via kmeans on embedding
-    categories = dokmeans(embedding, totalpx)
+    categories = dokmeans(embedding, totalpx, odir)
 
     #produce and save cluster averages
 
@@ -217,13 +217,13 @@ def complete(data, energy, totalpx, mapx, mapy):
         
         for j in range(config.nclust):
             print(f'saving reducer {redname} cluster {j} with shape {classavg[i,j,:].shape}', end='\r')
-            np.savetxt(os.path.join(config.odir, "sum_" + redname + "_" + str(j) + ".txt"), np.c_[energy, classavg[i,j,:]], fmt=['%1.3e','%1.6e'])
+            np.savetxt(os.path.join(odir, "sum_" + redname + "_" + str(j) + ".txt"), np.c_[energy, classavg[i,j,:]], fmt=['%1.3e','%1.6e'])
         
         print(f'saving combined file for {redname}')
-        np.savetxt(os.path.join(config.odir, "sum_" + redname + ".txt"), np.c_[energy, classavg[i,:,:].transpose(1,0)], fmt='%1.5e')             
+        np.savetxt(os.path.join(odir, "sum_" + redname + ".txt"), np.c_[energy, classavg[i,:,:].transpose(1,0)], fmt='%1.5e')             
         #plt.plot(energy, clustaverages[i,j,:])
     
-    clustplt(embedding, categories, mapx, clusttimes)
+    clustplt(embedding, categories, mapx, clusttimes, odir)
 
     return categories, classavg
 

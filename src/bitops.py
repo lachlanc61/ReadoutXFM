@@ -290,10 +290,10 @@ def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
             #   else throw a warning
             if i > (totalpx-2):
                 if (config.SHORTRUN == True):   #i > totalpx is expected for short run
-                    print("ending at:", idx)
+                    print("ending at:", i, idx)
                     idx=streamlen+1
                     break 
-                else:
+                #else:
                     print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
             i+=1
 
