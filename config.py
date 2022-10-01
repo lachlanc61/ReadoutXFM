@@ -16,7 +16,7 @@ SEPSUMSPEC=True
 SAVEPXSPEC=True
 
 
-DOBG=False
+DOBG=True
 LOWBGADJUST=True
 
 
