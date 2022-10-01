@@ -22,7 +22,7 @@ ELASTIC=17.44   #energy of tube Ka
 EOFFSET=3.0
 MAX_E=30        #maximum energy of interest
 SDS=9           #standard deviations
-RGBLOG=True     #map RGB as log of intensity
+RGBLOG=False     #map RGB as log of intensity
 NCOLS=5         #no. colours
 
 
