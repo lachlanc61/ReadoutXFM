@@ -24,11 +24,20 @@ Parses spectrum-by-pixel maps from IXRF XFM
 
 ./data has example dataset
 
-SPEED
-                t/px
-reading only:   0.00014 
-colourmap:      0.0078
-read and clust  0.001296 
+SPEEDUP
+                            t/px
+reading only:               0.000140 s
++clustering                 0.001296 s     
+colourmap:                  0.007800 s
+
+improving colourmap:    
+    for j:                  0.007625 s
+    vectorise channels:     0.004051 s
+    pre-init gaussians:     0.002641 s   
+    fully vectorised:       0.001886 s
+add background fitting:
+    snip:               0.002734 s
+    complex snip:       0.002919 s
 
 """
 
