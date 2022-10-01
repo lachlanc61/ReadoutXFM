@@ -13,10 +13,10 @@ NCHAN=4096
 ESTEP=0.01
 CHARENCODE = 'utf-8'
 DOCOLOURS=True
-DOCLUST=True
+DOCLUST=False
 SEPSUMSPEC=True
 SAVEPXSPEC=True
-DOBG=True
+DOBG=False
 savename="pxspec"
 
 nclust=10
@@ -34,7 +34,7 @@ MAPY=126
 DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
-SHORTRUN=False  #stop after first X% of pixels
+SHORTRUN=True  #stop after first X% of pixels
 shortpct=10    #% of lines
 
 #recalc flags

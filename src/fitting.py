@@ -16,7 +16,8 @@ def fitbaseline(y,noisy):
     bg = pybaselines.smooth.snip(y[LOWCUT:],SNIPWINDOW)[0]
     bg=np.pad(bg, (LOWCUT, 0), 'constant', constant_values=(bg[0], 0))
     if noisy:
-        bg=3*bg+1
+        #print("ADJUSTING BG")
+        bg=2*bg+1
     y=y-bg
     y[y<0] = 0
     return y, bg

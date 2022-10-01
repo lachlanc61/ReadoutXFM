@@ -69,10 +69,23 @@ print(
 )
 
 #open the datafile 
+
+
 with open(f, mode='rb') as file: # rb = read binary
     
+
     #generate bytestream
     stream = file.read()         #NB. to read in chunks, add chunk size as read(SIZE)
+
+    """
+    read header 
+        receives stream
+        returns
+            mapx
+            mapy
+            totalpx?
+    """
+
     streamlen=len(stream)
 
     print(f"filesize: {streamlen} (bytes)")
@@ -84,7 +97,7 @@ with open(f, mode='rb') as file: # rb = read binary
     #   if we find this immediately, header is zero length
     #provided header is present
     #   read params from header
-    if headerlen == 20550:
+    if headerlen == 20550:  #(="DP" as <uint16)
         print("WARNING: no header found")
         headerlen=0
         mapx=config.MAPX
@@ -116,6 +129,7 @@ with open(f, mode='rb') as file: # rb = read binary
     #assign map size based on dimensions
     totalpx=mapx*mapy     
 
+    "----------------------------------------"
     #print run params
     print(f"header length: {headerlen} (bytes)")
     print(f"map dimensions: {mapx} x {mapy}")
@@ -191,7 +205,7 @@ with open(f, mode='rb') as file: # rb = read binary
             #if pixel index greater than expected no. pixels based on map dimensions
             #   end if we are doing a truncated run
             #   else throw a warning
-            if i > (totalpx-1):
+            if i > (totalpx-2):
                 if (config.SHORTRUN == True):   #i > totalpx is expected for short run
                     print("ending at:", idx)
                     idx=streamlen+1

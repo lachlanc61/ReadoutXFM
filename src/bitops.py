@@ -98,7 +98,7 @@ def readpxrecord(idx, stream):
     #iterate until byte index passes pxlen
     #pull channel, count pairs
     while idx < (pxstart+pxlen):
-   #while idx < 2000:
+    #while idx < 2000:
         if (config.DEBUG2): print(f"next bytes at {idx}: {stream[idx:idx+8]}")
         chan[j], idx=binunpack(stream,idx,"<H")
         counts[j], idx=binunpack(stream,idx,"<H")
