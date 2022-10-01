@@ -2,18 +2,14 @@ import os
 import time
 import gc
 import time
-import json
 
 import numpy as np
-from sklearn import decomposition
-import umap.umap_ as umap
 
 import config
 import src.utils as utils
 import src.bitops as bitops
 import src.colour as colour
 import src.clustering as clustering
-import src.fitting as fitting
 """
 Parses spectrum-by-pixel maps from IXRF XFM
 
@@ -24,21 +20,6 @@ Parses spectrum-by-pixel maps from IXRF XFM
 
 ./data has example dataset
 
-SPEEDUP
-                            t/px
-reading only:               0.000140 s
-+clustering                 0.001296 s     
-colourmap:                  0.007800 s
-
-improving colourmap:    
-    for j:                  0.007625 s
-    vectorise channels:     0.004051 s
-    pre-init gaussians:     0.002641 s   
-    fully vectorised:       0.001886 s
-add background fitting:
-    snip:               0.002734 s
-    complex snip:       0.002919 s
-
 """
 
 #-----------------------------------
@@ -48,6 +29,9 @@ add background fitting:
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
+
+#initialise directories relative to current script
+f, fname, script, spath, wdir, odir = utils.initialise(os.path.realpath(__file__))
 
 starttime = time.time()             #init timer
 chan=np.arange(0,config.NCHAN)      #channels
@@ -60,15 +44,6 @@ if config.DOCOLOURS == True: colour.initialise(energy)
 #-----------------------------------
 #MAIN START
 #-----------------------------------
-
-#check filetype is recognised - currently only accepts .GeoPIXE
-if config.FTYPE == ".GeoPIXE":
-    f = os.path.join(config.wdir,config.infile)
-    fname = os.path.splitext(os.path.basename(f))[0]
-    print(f"Opening file: {fname}\n")
-else: 
-    print(f'FATAL: filetype {config.FTYPE} not recognised')
-    exit()
 
 #open the datafile 
 with open(f, mode='rb') as file: # rb = read binary
@@ -92,29 +67,20 @@ with open(f, mode='rb') as file: # rb = read binary
 
     #if we are parsing the .GeoPIXE file
     if config.FORCEPARSE:
-
         #loop through all pixels and return data, corrected data
         #   and pixel header arrays
-        data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-            = bitops.readspectra(stream, headerlen, chan, energy, mapx, mapy, totalpx)
+        data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows, odir \
+            = bitops.parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx)
+    else:   
+        #read these from a text file
+        data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows, odir \
+            = bitops.readspec(config.outfile)
 
-    else:   #read these from a text file
-        print("loading from file", config.savename)
-        data = np.loadtxt(os.path.join(config.odir, config.savename), dtype=np.uint16)
-        pxlen=np.loadtxt(os.path.join(config.odir, "pxlen.txt"), dtype=np.uint16)
-        xidx=np.loadtxt(os.path.join(config.odir, "xidx.txt"), dtype=np.uint16)
-        yidx=np.loadtxt(os.path.join(config.odir, "yidx.txt"), dtype=np.uint16)
-        det=np.loadtxt(os.path.join(config.odir, "detector.txt"), dtype=np.uint16)
-        dt=np.loadtxt(os.path.join(config.odir, "dt.txt"), dtype=np.uint16)
-        print("loaded successfully", config.savename)
-
-    #print memory usage at this point    
-    "---------------------------\n"
-    "Memory usage:\n"
-    "---------------------------\n"
+    #show memory usage    
     utils.varsizes(locals().items())
 
-    #clear the bytestream from memory
+    #manually drop the bytestream from memory
+    #   clustering is memory intensive, better to get this removed asap
     del stream
     gc.collect()
 
@@ -130,3 +96,21 @@ with open(f, mode='rb') as file: # rb = read binary
 
 print("CLEAN EXIT")
 exit()
+
+
+"""
+runtime log:
+                            t/px
+reading only:               0.000140 s
++clustering                 0.001296 s     
+colourmap:                  0.007800 s
+
+improving colourmap:    
+    for j:                  0.007625 s
+    vectorise channels:     0.004051 s
+    pre-init gaussians:     0.002641 s   
+    fully vectorised:       0.001886 s
+add background fitting:
+    snip:               0.002734 s
+    complex snip:       0.002919 s
+"""

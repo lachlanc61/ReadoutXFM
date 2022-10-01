@@ -1,7 +1,11 @@
 import time
 import sys
+import os
 import numpy as np
 from scipy.stats import norm
+import matplotlib.pyplot as plt
+
+import config
 
 def lookfor(x, val):
   difference_array = np.absolute(x-val)
@@ -73,9 +77,41 @@ def sizeof_fmt(num, suffix='B'):
     return "%.1f %s%s" % (num, 'Yi', suffix)
 
 def varsizes(allitems):
+  "---------------------------\n"
+  "Memory usage:\n"
+  "---------------------------\n"
   for name, size in sorted(((name, sys.getsizeof(value)) for name, value in allitems),
                           key= lambda x: -x[1])[:10]:
       print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
 
 
+def initialise(script):
+  spath=os.path.dirname(script) 
+  wdir=os.path.join(spath,config.wdirname)
+  odir=os.path.join(spath,config.odirname)
+  print("script:", script)
+  print("script path:", spath)
+  print("data path:", wdir)
+  print("---------------")
+  
+  #check filetype is recognised - currently only accepts .GeoPIXE
+  if config.FTYPE == ".GeoPIXE":
+      f = os.path.join(wdir,config.infile)
+      fname = os.path.splitext(os.path.basename(f))[0]
+      print(f"Opening file: {fname}\n")
+  else: 
+      print(f'FATAL: filetype {config.FTYPE} not recognised')
+      exit()
 
+  if False:
+      plt.rc('font', size=config.smallfont)          # controls default text sizes
+      plt.rc('axes', titlesize=config.smallfont)     # fontsize of the axes title
+      plt.rc('axes', labelsize=config.medfont)    # fontsize of the x and y labels
+      plt.rc('xtick', labelsize=config.smallfont)    # fontsize of the tick labels
+      plt.rc('ytick', labelsize=config.smallfont)    # fontsize of the tick labels
+      plt.rc('legend', fontsize=config.smallfont)    # legend fontsize
+      plt.rc('figure', titlesize=config.lgfont)  # fontsize of the figure title
+      plt.rc('lines', linewidth=config.lwidth)
+      plt.rcParams['axes.linewidth'] = config.bwidth
+
+  return f, fname, script, spath, wdir, odir

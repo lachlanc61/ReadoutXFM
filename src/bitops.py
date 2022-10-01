@@ -191,7 +191,31 @@ def readgpxheader(stream):
     return headerlen, mapx, mapy, totalpx
 
 
-def readspectra(stream, headerlen, chan, energy, mapx, mapy, totalpx):
+def readspec(datname, odir):
+    """
+    read data from a pre-saved datfile
+        does not currently return as much information as the full parse
+    """
+    print("loading from file", config.outfile)
+    data = np.loadtxt(os.path.join(odir, datname), dtype=np.uint16)
+    pxlen=np.loadtxt(os.path.join(odir, "pxlen.txt"), dtype=np.uint16)
+    xidx=np.loadtxt(os.path.join(odir, "xidx.txt"), dtype=np.uint16)
+    yidx=np.loadtxt(os.path.join(odir, "yidx.txt"), dtype=np.uint16)
+    det=np.loadtxt(os.path.join(odir, "detector.txt"), dtype=np.uint16)
+    dt=np.loadtxt(os.path.join(odir, "dt.txt"), dtype=np.uint16)
+    print("loaded successfully", config.outfile) 
+
+    corrected=None
+    rvals=None
+    bvals=None
+    gvals=None
+    totalcounts=None
+    nrows=None
+
+    return(data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows) 
+
+
+def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
         """
         read the pixel records
         receives stream, headerlen 
@@ -256,7 +280,10 @@ def readspectra(stream, headerlen, chan, energy, mapx, mapy, totalpx):
                 corrected=None  #assign dummy value to return
 
             #build colours if required
-            if config.DOCOLOURS == True: rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
+            if config.DOCOLOURS == True: 
+                rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
+            else:
+                rvals, bvals, gvals, totalcounts = None
             
             #if pixel index greater than expected no. pixels based on map dimensions
             #   end if we are doing a truncated run
@@ -276,13 +303,13 @@ def readspectra(stream, headerlen, chan, energy, mapx, mapy, totalpx):
 
         if config.SAVEPXSPEC:
                 print(f"saving spectrum-by-pixel to file")
-                np.savetxt(os.path.join(config.odir,  config.savename + ".dat"), data, fmt='%i')
+                np.savetxt(os.path.join(odir,  config.outfile + ".dat"), data, fmt='%i')
             
-        np.savetxt(os.path.join(config.odir, "pxlen.txt"), pxlen, fmt='%i')
-        np.savetxt(os.path.join(config.odir, "xidx.txt"), xidx, fmt='%i')
-        np.savetxt(os.path.join(config.odir, "yidx.txt"), yidx, fmt='%i')
-        np.savetxt(os.path.join(config.odir, "detector.txt"), det, fmt='%i')
-        np.savetxt(os.path.join(config.odir, "dt.txt"), dt, fmt='%i')
+        np.savetxt(os.path.join(odir, "pxlen.txt"), pxlen, fmt='%i')
+        np.savetxt(os.path.join(odir, "xidx.txt"), xidx, fmt='%i')
+        np.savetxt(os.path.join(odir, "yidx.txt"), yidx, fmt='%i')
+        np.savetxt(os.path.join(odir, "detector.txt"), det, fmt='%i')
+        np.savetxt(os.path.join(odir, "dt.txt"), dt, fmt='%i')
 
 
         print(
