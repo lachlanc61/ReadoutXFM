@@ -1,6 +1,17 @@
 import config
 import struct 
+import os
 import numpy as np
+import json
+import src.utils as utils
+import src.colour as colour
+import src.fitting as fitting
+import time
+
+#-----------------------------------
+#INITIALISE
+#-----------------------------------
+
 
 #-------------------------------------
 #FUNCTIONS
@@ -33,6 +44,8 @@ def binunpack(stream, idx, sformat):
     retval = struct.unpack(sformat, stream[idx:idx+nbytes])[0]
     idx=idx+nbytes
     return(retval, idx)    
+
+
 
 def readpxrecord(idx, stream):
     """"
@@ -108,3 +121,179 @@ def readpxrecord(idx, stream):
         j=j+1
     if (config.DEBUG): print(f"following bytes at {idx}: {stream[idx:idx+10]}")
     return(chan, counts, pxlen, xcoord, ycoord, det, dt, idx)
+
+
+
+
+def readgpxheader(stream):
+    """
+    read header 
+        receives stream
+        returns
+            mapx
+            mapy
+            totalpx?
+    """
+
+    print(
+        "---------------------------\n"
+        f"PARSING HEADER\n"
+        "---------------------------"
+    )
+
+    streamlen=len(stream)
+    print(f"filesize: {streamlen} (bytes)")
+
+    headerlen=binunpack(stream,0,"<H")[0]
+
+    #check for header
+    #   pixels start with "DP" (=20550 as <uint16)
+    #   if we find this immediately, header is zero length
+    #provided header is present
+    #   read params from header
+
+    if headerlen == 20550:  #(="DP" as <uint16)
+        print("WARNING: no header found")
+        headerlen=0
+        mapx=config.MAPX
+        mapy=config.MAPY
+        print("WARNING: map dimensions not found")
+        print(f"-------using defaults {mapx},{mapy}")
+    else:
+        """
+        if header present, read as json
+        https://stackoverflow.com/questions/40059654/python-convert-a-bytes-array-into-json-format
+        """
+        #pull slice of byte stream corresponding to header
+        #   bytes[0-2]= headerlen
+        #   headerlen doesn't include trailing '\n' '}', so +2
+        headerstream=stream[2:headerlen+2]
+        #read it as utf8
+        headerstream = headerstream.decode('utf8')
+        
+        #load into dictionary via json builtin
+        headerdict = json.loads(headerstream)
+
+        #create a human-readable dump for debugging
+        headerdump = json.dumps(headerdict, indent=4, sort_keys=False)
+        
+        #get params
+        mapx=headerdict['File Header']['Xres']  #map dimension x
+        mapy=headerdict['File Header']['Yres']  #map dimension y
+
+    #assign map size based on dimensions
+    totalpx=mapx*mapy     
+
+    #print map params
+    print(f"header length: {headerlen} (bytes)")
+    print(f"map dimensions: {mapx} x {mapy}")
+
+    return headerlen, mapx, mapy, totalpx
+
+
+def readspectra(stream, headerlen, chan, energy, mapx, mapy, totalpx):
+        """
+        read the pixel records
+        receives stream, headerlen 
+
+        """
+        starttime = time.time()             #init timer
+
+        #assign starting pixel index 
+        idx=headerlen+2 #legnth of header + 2 bytes
+        streamlen=len(stream)
+
+        #initialise pixel param arrays
+        pxlen=np.zeros(totalpx,dtype=np.uint16)
+        xidx=np.zeros(totalpx,dtype=np.uint16)
+        yidx=np.zeros(totalpx,dtype=np.uint16)
+        det=np.zeros(totalpx,dtype=np.uint16)
+        dt=np.zeros(totalpx,dtype=np.uint16)
+        
+        if config.DOCOLOURS == True:
+            #initalise pixel colour arrays
+            rvals=np.zeros(totalpx)
+            gvals=np.zeros(totalpx)
+            bvals=np.zeros(totalpx)
+            totalcounts=np.zeros(totalpx)
+
+        #initialise data array
+        data=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
+        if config.DOBG: corrected=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
+
+        i=0 #pixel counter
+        j=0 #row counter
+
+        #loop through pixels
+        while idx < streamlen:
+
+            #print pixel index every row px
+            if i % mapx == 0: 
+                print(f"Row {j}/{mapy} at pixel {i}, byte {idx} ({100*idx/streamlen:.1f} %)", end='\r')
+                j+=1
+
+            #read pixel record into spectrum and header param arrays, 
+            # + reassign index at end of read
+            outchan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(idx, stream)
+
+            #fill gaps in spectrum 
+            #   (ie. assign all zero-count chans = 0)
+            outchan, counts = utils.gapfill(outchan,counts, config.NCHAN)
+
+            #warn if recieved channel list is different length to chan array
+            if len(outchan) != len(chan):
+                print("WARNING: unexpected length of channel list")
+        
+            #assign counts into data array
+            data[i,:]=counts
+
+            #if we are attempting to fit a background
+            #   apply it, and save the corrected spectra
+            if config.DOBG: 
+                counts, bg = fitting.fitbaseline(counts, config.LOWBGADJUST)
+                corrected[i,:]=counts
+            else:
+                corrected=None  #assign dummy value to return
+
+            #build colours if required
+            if config.DOCOLOURS == True: rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
+            
+            #if pixel index greater than expected no. pixels based on map dimensions
+            #   end if we are doing a truncated run
+            #   else throw a warning
+            if i > (totalpx-2):
+                if (config.SHORTRUN == True):   #i > totalpx is expected for short run
+                    print("ending at:", idx)
+                    idx=streamlen+1
+                    break 
+                else:
+                    print(f"WARNING: pixel count {i} exceeds expected map size {totalpx}")
+            i+=1
+
+        nrows=j #store no. rows read successfully
+
+        runtime = time.time() - starttime
+
+        if config.SAVEPXSPEC:
+                print(f"saving spectrum-by-pixel to file")
+                np.savetxt(os.path.join(config.odir,  config.savename + ".dat"), data, fmt='%i')
+            
+        np.savetxt(os.path.join(config.odir, "pxlen.txt"), pxlen, fmt='%i')
+        np.savetxt(os.path.join(config.odir, "xidx.txt"), xidx, fmt='%i')
+        np.savetxt(os.path.join(config.odir, "yidx.txt"), yidx, fmt='%i')
+        np.savetxt(os.path.join(config.odir, "detector.txt"), det, fmt='%i')
+        np.savetxt(os.path.join(config.odir, "dt.txt"), dt, fmt='%i')
+
+
+        print(
+        "---------------------------\n"
+        "MAP COMPLETE\n"
+        "---------------------------\n"
+        f"pixels expected (X*Y): {totalpx}\n"
+        f"pixels found: {i}\n"
+        f"total time: {round(runtime,2)} s\n"
+        f"time per pixel: {round((runtime/i),6)} s\n"
+        "---------------------------"
+        )
+
+        return(data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows)

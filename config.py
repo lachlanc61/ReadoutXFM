@@ -13,10 +13,14 @@ NCHAN=4096
 ESTEP=0.01
 CHARENCODE = 'utf-8'
 DOCOLOURS=True
-DOCLUST=False
+DOCLUST=True
 SEPSUMSPEC=True
 SAVEPXSPEC=True
+
+
 DOBG=False
+LOWBGADJUST=True
+
 savename="pxspec"
 
 nclust=10
@@ -34,11 +38,11 @@ MAPY=126
 DEBUG=False     #debug flag (pixels)
 DEBUG2=False    #second-level debug flag (channels)
 #shortcut flags
-SHORTRUN=True  #stop after first X% of pixels
+SHORTRUN=False  #stop after first X% of pixels
 shortpct=10    #% of lines
 
 #recalc flags
-FORCEREAD=True
+FORCEPARSE=True
 FORCERED=True        #always recalc dimensionality reduction
 FORCEKMEANS=True     #always recalc kmeans 
 

@@ -110,9 +110,7 @@ def spectorgb(e, y):
 
     return(rsum,gsum,bsum,ysum)
 
-
-
-def clcomplete(rvals, gvals, bvals, mapx, mapy):
+def complete(rvals, gvals, bvals, mapx, mapy):
     """
     creates final colour-mapped image
 
@@ -141,61 +139,11 @@ def clcomplete(rvals, gvals, bvals, mapx, mapy):
     rgbarray[..., 1] = gimg*256
     rgbarray[..., 2] = bimg*256
     
-    return(rgbarray)
-
-def clcomplete2(rvals, gvals, bvals, totalcounts, mapx, mapy):
-    """
-    creates final colour-mapped image
-
-    recives R G B arrays per pixel, and total counts per pixel
-
-    displays plot
-    """
-    totalpx = len(totalcounts)
-    
-    print(f'rgb maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
-    allch=np.append(rvals,gvals)   
-    allch=np.append(allch,bvals)  
-    chmax=max(allch)
-
-    maxcounts=max(totalcounts)
-
-    for i in np.arange(totalpx):
-        rgbscale=totalcounts[i]/maxcounts
-        rvals[i]=rvals[i]*rgbscale/chmax
-        gvals[i]=gvals[i]*rgbscale/chmax
-        bvals[i]=bvals[i]*rgbscale/chmax
-
-    print(f'scaled maxima: r {np.max(rvals)} g {np.max(gvals)} b {np.max(bvals)}')
-
-    np.savetxt(os.path.join(config.odir, "rvals.txt"), rvals)
-    np.savetxt(os.path.join(config.odir, "gvals.txt"), gvals)
-    np.savetxt(os.path.join(config.odir, "bvals.txt"), bvals)
-
-    rreshape=np.reshape(rvals, (-1, mapx))
-    greshape=np.reshape(gvals, (-1, mapx))
-    breshape=np.reshape(bvals, (-1, mapx))
-
-    rgbarray = np.zeros((mapy,mapx,3), 'uint8')
-    rgbarray[..., 0] = rreshape*256
-    rgbarray[..., 1] = greshape*256
-    rgbarray[..., 2] = breshape*256
-    
+    show(rgbarray)
     return(rgbarray)
 
 
-def clshow(rgbarray):
+def show(rgbarray):
     plt.imshow(rgbarray)
     plt.savefig(os.path.join(config.odir, 'colours.png'), dpi=150)
     plt.show()   
-
-
-"""
-speedup:    
-    for j:                  0.007625 s
-    vectorise channels:     0.004051 s
-    pre-init gaussians:     0.002641 s   
-    colourmap:              0.001886 s
-    fit snip:               0.002734 s
-    fit complex snip:       0.002919 s
-"""

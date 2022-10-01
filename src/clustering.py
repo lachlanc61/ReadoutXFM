@@ -198,6 +198,37 @@ def clustplt(embedding, categories, mapx, clusttimes):
     plt.show()
     return
 
+
+def complete(data, energy, totalpx, mapx, mapy):
+
+    #   produce reduced-dim embedding per reducer
+    embedding, clusttimes = reduce(data)
+
+    #   cluster via kmeans on embedding
+    categories = dokmeans(embedding, totalpx)
+
+    #produce and save cluster averages
+
+    #   initialise averages
+    classavg=np.zeros([len(reducers),config.nclust,config.NCHAN])
+
+    #   cycle through reducers
+    for i in range(len(reducers)):
+        redname=getredname(i)
+        classavg[i]=sumclusters(data, categories[i])
+        
+        for j in range(config.nclust):
+            print(f'saving reducer {redname} cluster {j} with shape {classavg[i,j,:].shape}')
+            np.savetxt(os.path.join(config.odir, "sum_" + redname + "_" + str(j) + ".txt"), np.c_[energy, classavg[i,j,:]], fmt=['%1.3e','%1.6e'])
+        
+        print(f'saving combined file for {redname}')
+        np.savetxt(os.path.join(config.odir, "sum_" + redname + ".txt"), np.c_[energy, classavg[i,:,:].transpose(1,0)], fmt='%1.5e')             
+        #plt.plot(energy, clustaverages[i,j,:])
+    
+    clustplt(embedding, categories, mapx, clusttimes)
+
+    return categories, classavg
+
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
