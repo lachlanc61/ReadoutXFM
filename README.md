@@ -10,7 +10,7 @@ This package performs dimensionality-reduction and clustering on XFM datasets, p
 
 # Summary:
 
-- parses JSON/hexadecimal .GeoPIXE files
+- parses JSON/binary .GeoPIXE files
 
 - extracts pixel records and pixel parameters
 
@@ -22,7 +22,7 @@ This package performs dimensionality-reduction and clustering on XFM datasets, p
 
 # Method
 
-The instrument data format is a complex mixed JSON/hexadecimal:
+The instrument data format is a complex mixed JSON/binary:
 
 <p align="left">
   <img src="./docs/IMG/fileformat4.png" alt="Spectrum" width="1024">
