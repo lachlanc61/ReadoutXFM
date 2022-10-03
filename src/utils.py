@@ -2,14 +2,14 @@ import time
 import sys
 import os
 import numpy as np
-from scipy.stats import norm
 import matplotlib.pyplot as plt
+
+from scipy.stats import norm
 
 import config
 
 def initialise():
   script = os.path.realpath(__file__) #_file = current script
-#  script = os.path.realpath(__file__) #_file = current script
   spath=os.path.dirname(script) 
   spath=os.path.dirname(spath)
   wdir=os.path.join(spath,config.wdirname)
