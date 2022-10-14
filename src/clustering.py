@@ -7,8 +7,6 @@ from sklearn import decomposition
 from sklearn.cluster import KMeans
 import umap.umap_ as umap
 
-import config
-
 import src.utils as utils
 
 #-----------------------------------
@@ -39,13 +37,6 @@ reducers = [
     (umap.UMAP, {"n_neighbors": 30, "min_dist": 0.3, "low_memory": True}),
 ]
 
-kmeans = KMeans(
-    init="random",
-    n_clusters=config.nclust,
-    n_init=config.nclust,
-    max_iter=300,
-    random_state=42
- )
 
 #-----------------------------------
 #FUNCTIONS
@@ -59,7 +50,7 @@ def getredname(i):
     """
     return repr(reducers[i][0]()).split("(")[0]
 
-def reduce(data, odir):
+def reduce(config, data, odir):
     """
     performs dimensionality reduction on data using reducers
     args:       data
@@ -75,7 +66,7 @@ def reduce(data, odir):
         start_time = time.time()
         print(f'REDUCER {i+1} of {nred}: {redname} across {npx} elements')
 
-        if config.FORCERED:
+        if config['FORCERED']:
             #utils.varsizes(locals().items())
             embed = reducer(n_components=2, **args).fit_transform(data)
             np.savetxt(os.path.join(odir, redname + ".txt"), embed)
@@ -89,13 +80,21 @@ def reduce(data, odir):
     return embedding, clusttimes
 
 
-def dokmeans(embedding, npx, odir):
+def dokmeans(config, embedding, npx, odir):
     """
     performs kmeans on embedding matrices to cluster 2D matrices from reducers 
 
     args:       set of 2D embedding matrices (shape [nreducers,x,y]), number of pixels in map
     returns:    category-by-pixel matrix, shape [nreducers,chan]
     """
+    #initialise kwargs
+    kmeans = KMeans(
+        init="random",
+        n_clusters=config['nclust'],
+        n_init=config['nclust'],
+        max_iter=300,
+        random_state=42
+    )
 
     categories=np.zeros((nred,npx),dtype=np.uint16)
     for i in np.arange(0,nred):
@@ -104,7 +103,7 @@ def dokmeans(embedding, npx, odir):
 
         print(f'KMEANS clustering {i+1} of {nred}, reducer {redname} across {npx} elements')
 
-        if config.FORCEKMEANS:
+        if config['FORCEKMEANS']:
             kmeans.fit(embed)
             categories[i]=kmeans.labels_
             np.savetxt(os.path.join(odir, redname + "_kmeans.txt"), categories[i])
@@ -113,7 +112,7 @@ def dokmeans(embedding, npx, odir):
             categories[i]=np.loadtxt(os.path.join(odir, redname + "_kmeans.txt"))
     return categories
 
-def sumclusters(dataset, catlist):
+def sumclusters(config, dataset, catlist):
     """
     calculate summed spectrum for each cluster
     args: 
@@ -124,9 +123,9 @@ def sumclusters(dataset, catlist):
     
     aware: nclust, number of clusters
     """
-    specsum=np.zeros([config.nclust,config.NCHAN])
+    specsum=np.zeros([config['nclust'],config['NCHAN']])
 
-    for i in range(config.nclust):
+    for i in range(config['nclust']):
         datcat=dataset[catlist==i]
         pxincat = datcat.shape[0]   #no. pixels in category i
         specsum[i,:]=(np.sum(datcat,axis=0))/pxincat
@@ -197,7 +196,7 @@ def clustplt(embedding, categories, mapx, clusttimes, odir):
     return
 
 
-def complete(data, energy, totalpx, mapx, mapy, odir):
+def complete(config, data, energy, totalpx, mapx, mapy, odir):
 
     #   produce reduced-dim embedding per reducer
     embedding, clusttimes = reduce(data, odir)
@@ -208,14 +207,14 @@ def complete(data, energy, totalpx, mapx, mapy, odir):
     #produce and save cluster averages
 
     #   initialise averages
-    classavg=np.zeros([len(reducers),config.nclust,config.NCHAN])
+    classavg=np.zeros([len(reducers),config['nclust'],config['NCHAN']])
 
     #   cycle through reducers
     for i in range(len(reducers)):
         redname=getredname(i)
         classavg[i]=sumclusters(data, categories[i])
         
-        for j in range(config.nclust):
+        for j in range(config['nclust']):
             print(f'saving reducer {redname} cluster {j} with shape {classavg[i,j,:].shape}', end='\r')
             np.savetxt(os.path.join(odir, "sum_" + redname + "_" + str(j) + ".txt"), np.c_[energy, classavg[i,j,:]], fmt=['%1.3e','%1.6e'])
         

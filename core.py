@@ -5,7 +5,6 @@ import time
 
 import numpy as np
 
-import config
 import src.utils as utils
 import src.bitops as bitops
 import src.colour as colour
@@ -23,23 +22,26 @@ Parses spectrum-by-pixel maps from IXRF XFM
 """
 
 #-----------------------------------
-#CLASSES
+#vars
 #-----------------------------------
+CONFIG_FILE='config.yaml'
 
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
 
+config=utils.readcfg(CONFIG_FILE)
+
 #initialise directories relative to current script
 f, fname, script, spath, wdir, odir = utils.initialise()
 
 starttime = time.time()             #init timer
-chan=np.arange(0,config.NCHAN)      #channels
-energy=chan*config.ESTEP            #energy list
+chan=np.arange(0,config['NCHAN'])      #channels
+energy=chan*config['ESTEP']            #energy list
 noisecorrect=True                   #apply adjustment to SNIP to fit noisy pixels
 
 #if we are creating colourmaps, set up colour routine
-if config.DOCOLOURS == True: colour.initialise(energy)
+if config['DOCOLOURS'] == True: colour.initialise(energy)
 
 
 #-----------------------------------
@@ -57,8 +59,8 @@ with open(f, mode='rb') as file: # rb = read binary
 
     #   if we are skipping some of the file
     #       assign the ratio and adjust totalpx
-    if config.SHORTRUN:
-        skipratio=config.shortpct/100
+    if config['SHORTRUN']:
+        skipratio=config['shortpct']/100
         trunc_y=int(np.ceil(mapy*skipratio))
         totalpx=mapx*trunc_y
         print(f"SHORT RUN: ending at {skipratio*100} %")
@@ -67,7 +69,7 @@ with open(f, mode='rb') as file: # rb = read binary
     print("---------------------------")
 
     #if we are parsing the .GeoPIXE file
-    if config.FORCEPARSE:
+    if config['FORCEPARSE']:
         #loop through all pixels and return data, corrected data
         #   and pixel header arrays
         data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
@@ -75,7 +77,7 @@ with open(f, mode='rb') as file: # rb = read binary
     else:   
         #read these from a text file
         data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-            = bitops.readspec(config.outfile, odir)
+            = bitops.readspec(config['outfile'], odir)
 
     #show memory usage    
     utils.varsizes(locals().items())
@@ -88,11 +90,11 @@ with open(f, mode='rb') as file: # rb = read binary
     #perform post-analysis:
 
     #create and show colour map
-    if config.DOCOLOURS == True:
+    if config['DOCOLOURS'] == True:
         rgbarray=colour.complete(rvals, gvals, bvals, mapx, nrows, odir)
 
     #perform clustering
-    if config.DOCLUST:
+    if config['DOCLUST']:
         categories, classavg = clustering.complete(data, energy, totalpx, mapx, mapy, odir)
 
 print("CLEAN EXIT")

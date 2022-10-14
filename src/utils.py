@@ -1,19 +1,22 @@
 import time
 import sys
 import os
+import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.stats import norm
 
-import config
+def readcfg(filepath):
+    with open(filepath, "r") as f:
+        return yaml.safe_load(f)
 
-def initialise():
+def initialise(config):
   script = os.path.realpath(__file__) #_file = current script
   spath=os.path.dirname(script) 
   spath=os.path.dirname(spath)
-  wdir=os.path.join(spath,config.wdirname)
-  odir=os.path.join(spath,config.odirname)
+  wdir=os.path.join(spath,config['wdirname'])
+  odir=os.path.join(spath,config['odirname'])
   print(
     "---------------------------\n"
     "PATHS\n"
@@ -25,34 +28,17 @@ def initialise():
   )
 
   #check filetype is recognised - currently only accepts .GeoPIXE
-  if config.FTYPE == ".GeoPIXE":
-      f = os.path.join(wdir,config.infile)
+  if config['FTYPE'] == ".GeoPIXE":
+      f = os.path.join(wdir,config['infile'])
       fname = os.path.splitext(os.path.basename(f))[0]
       print(f"file: {f}")
   else: 
-      print(f'FATAL: filetype {config.FTYPE} not recognised')
+      print(f"FATAL: filetype {config['FTYPE']} not recognised")
       exit()
 
   print("---------------------------")
 
-  if False:
-      plt.rc('font', size=config.smallfont)          # controls default text sizes
-      plt.rc('axes', titlesize=config.smallfont)     # fontsize of the axes title
-      plt.rc('axes', labelsize=config.medfont)    # fontsize of the x and y labels
-      plt.rc('xtick', labelsize=config.smallfont)    # fontsize of the tick labels
-      plt.rc('ytick', labelsize=config.smallfont)    # fontsize of the tick labels
-      plt.rc('legend', fontsize=config.smallfont)    # legend fontsize
-      plt.rc('figure', titlesize=config.lgfont)  # fontsize of the figure title
-      plt.rc('lines', linewidth=config.lwidth)
-      plt.rcParams['axes.linewidth'] = config.bwidth
-
   return f, fname, script, spath, wdir, odir
-
-
-
-
-
-
 
 
 

@@ -1,11 +1,10 @@
 import numpy as np
 import os
 import sys
-import pybaselines.smooth
+#import pybaselines.smooth  #for background fitting
 
 #from colorsys import hsv_to_rgb
 
-import config
 import src.utils as utils
 import matplotlib.pyplot as plt
 
@@ -16,6 +15,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 #MODIFIABLE CONSTANTS
 #-----------------------------------
 
+
 MIN_E=1.04      #minimum energy of interest
 MIN_XE=-5       #extended minimum x for ir
 ELASTIC=17.44   #energy of tube Ka
@@ -24,11 +24,15 @@ MAX_E=30        #maximum energy of interest
 SDS=9           #standard deviations
 RGBLOG=False     #map RGB as log of intensity
 NCOLS=5         #no. colours
-
+#these should all be refactored into config, really
 
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
+
+#import config file directly
+CONFIG_FILE='config.yaml'
+config=utils.readcfg(CONFIG_FILE)
 
 # create a pointer to the module object instance itself
 #       functions like "self" for module
@@ -37,7 +41,7 @@ this = sys.modules[__name__]
 
 #vars for gaussians
 #   x-zero
-xzer=np.floor(-(MIN_XE/config.ESTEP)).astype(int)   
+xzer=np.floor(-(MIN_XE/config['ESTEP'])).astype(int)   
 #   standard deviation 
 sd=(ELASTIC-MIN_E)/(SDS)  
 #   means for each
@@ -51,7 +55,7 @@ uvmu=ELASTIC+sd*1.5   #uv
 #FUNCTIONS
 #-----------------------------------
 
-def initialise(e):
+def initialise(config, e):
     """
     initialise the colour gaussians 
     export to module-wide variables via "this"
@@ -64,7 +68,7 @@ def initialise(e):
         could also create in parallel via config.NCHAN & ESTEP
     """
     kachan=utils.lookfor(e,float(ELASTIC+EOFFSET))  #K-alpha channel
-    npad=config.NCHAN-kachan
+    npad=config['NCHAN']-kachan
 
     hsv=cm.get_cmap('hsv', kachan)
     cmap=hsv(range(kachan))

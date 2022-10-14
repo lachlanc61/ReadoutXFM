@@ -1,4 +1,3 @@
-import config
 import struct 
 import os
 import numpy as np
@@ -47,7 +46,7 @@ def binunpack(stream, idx, sformat):
 
 
 
-def readpxrecord(idx, stream):
+def readpxrecord(config, idx, stream):
     """"
     Pixel Record
     Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
@@ -75,17 +74,17 @@ def readpxrecord(idx, stream):
     #   unpack first two bytes after header as char
     pxflag=struct.unpack("cc", stream[idx:idx+2])[:]
     #   use join to merge into string
-    pxflag="".join([pxflag[0].decode(config.CHARENCODE),pxflag[1].decode(config.CHARENCODE)])
+    pxflag="".join([pxflag[0].decode(config['CHARENCODE']),pxflag[1].decode(config['CHARENCODE'])])
 
     #   check if string is "DP" - if not, fail
-    if pxflag != config.PXFLAG:
+    if pxflag != config['PXFLAG']:
         print(f"ERROR: pixel flag 'DP' expected but not found at byte {idx}")
         exit()
     else:
-        if (config.DEBUG): print(f"pixel at: {idx} bytes")
+        if (config['DEBUG']): print(f"pixel at: {idx} bytes")
 
     idx=idx+2   #step over "DP"
-    if (config.DEBUG): print(f"next bytes at {idx}: {stream[idx:idx+config.PXHEADERLEN]}")
+    if (config['DEBUG']): print(f"next bytes at {idx}: {stream[idx:idx+config['PXHEADERLEN']]}")
     #read each header field and step idx to end of field
     pxlen, idx=binunpack(stream,idx,"<I")
     xcoord, idx=binunpack(stream,idx,"<H")
@@ -94,7 +93,7 @@ def readpxrecord(idx, stream):
     dt, idx=binunpack(stream,idx,"<f")
 
     #print header fields
-    if (config.DEBUG): 
+    if (config['DEBUG']): 
         print("PXLEN: ",pxlen)
         print("XCOORD: ",xcoord)
         print("YCOORD: ",ycoord)
@@ -103,8 +102,8 @@ def readpxrecord(idx, stream):
 
     #initialise channel index and result arrays
     j=0
-    chan=np.zeros(int((pxlen-config.PXHEADERLEN)/4), dtype=int)
-    counts=np.zeros(int((pxlen-config.PXHEADERLEN)/4), dtype=int)
+    chan=np.zeros(int((pxlen-config['PXHEADERLEN'])/4), dtype=int)
+    counts=np.zeros(int((pxlen-config['PXHEADERLEN'])/4), dtype=int)
     #       4 = no. bytes in each x,y pair
     #         = 2x2 bytes each 
 
@@ -112,14 +111,14 @@ def readpxrecord(idx, stream):
     #pull channel, count pairs
     while idx < (pxstart+pxlen):
     #while idx < 2000:
-        if (config.DEBUG2): print(f"next bytes at {idx}: {stream[idx:idx+8]}")
+        if (config['DEBUG2']): print(f"next bytes at {idx}: {stream[idx:idx+8]}")
         chan[j], idx=binunpack(stream,idx,"<H")
         counts[j], idx=binunpack(stream,idx,"<H")
-        if (config.DEBUG2): print(f"idx {idx} x {chan[j]} y {counts[j]}")
+        if (config['DEBUG2']): print(f"idx {idx} x {chan[j]} y {counts[j]}")
         
     #    if (DEBUG): print(f"idx {idx} / {pxstart+pxlen}")
         j=j+1
-    if (config.DEBUG): print(f"following bytes at {idx}: {stream[idx:idx+10]}")
+    if (config['DEBUG']): print(f"following bytes at {idx}: {stream[idx:idx+10]}")
     return(chan, counts, pxlen, xcoord, ycoord, det, dt, idx)
 
 
@@ -148,17 +147,15 @@ def readgpxheader(stream):
 
     #check for header
     #   pixels start with "DP" (=20550 as <uint16)
-    #   if we find this immediately, header is zero length
+    #   if we find this immediately, header is zero length - cannot proceed
     #provided header is present
     #   read params from header
 
     if headerlen == 20550:  #(="DP" as <uint16)
         print("WARNING: no header found")
         headerlen=0
-        mapx=config.MAPX
-        mapy=config.MAPY
-        print("WARNING: map dimensions not found")
-        print(f"-------using defaults {mapx},{mapy}")
+        print("FATAL: map dimensions unknown, cannot build map")
+        exit()
     else:
         """
         if header present, read as json
@@ -191,19 +188,19 @@ def readgpxheader(stream):
     return headerlen, mapx, mapy, totalpx
 
 
-def readspec(datname, odir):
+def readspec(config, odir):
     """
     read data from a pre-saved datfile
         does not currently return as much information as the full parse
     """
-    print("loading from file", config.outfile)
-    data = np.loadtxt(os.path.join(odir, datname), dtype=np.uint16)
+    print("loading from file", config['outfile'])
+    data = np.loadtxt(os.path.join(odir, config['outfile']), dtype=np.uint16)
     pxlen=np.loadtxt(os.path.join(odir, "pxlen.txt"), dtype=np.uint16)
     xidx=np.loadtxt(os.path.join(odir, "xidx.txt"), dtype=np.uint16)
     yidx=np.loadtxt(os.path.join(odir, "yidx.txt"), dtype=np.uint16)
     det=np.loadtxt(os.path.join(odir, "detector.txt"), dtype=np.uint16)
     dt=np.loadtxt(os.path.join(odir, "dt.txt"), dtype=np.uint16)
-    print("loaded successfully", config.outfile) 
+    print("loaded successfully", config['outfile']) 
 
     corrected=None
     rvals=None
@@ -215,7 +212,7 @@ def readspec(datname, odir):
     return(data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows) 
 
 
-def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
+def parsespec(config, stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
         """
         read the pixel records
         receives stream, headerlen 
@@ -234,7 +231,7 @@ def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
         det=np.zeros(totalpx,dtype=np.uint16)
         dt=np.zeros(totalpx,dtype=np.uint16)
         
-        if config.DOCOLOURS == True:
+        if config['DOCOLOURS'] == True:
             #initalise pixel colour arrays
             rvals=np.zeros(totalpx)
             gvals=np.zeros(totalpx)
@@ -242,8 +239,8 @@ def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
             totalcounts=np.zeros(totalpx)
 
         #initialise data array
-        data=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
-        if config.DOBG: corrected=np.zeros((totalpx,config.NCHAN),dtype=np.uint16)
+        data=np.zeros((totalpx,config['NCHAN']),dtype=np.uint16)
+        if config['DOBG']: corrected=np.zeros((totalpx,config['NCHAN']),dtype=np.uint16)
 
         i=0 #pixel counter
         j=0 #row counter
@@ -262,7 +259,7 @@ def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
 
             #fill gaps in spectrum 
             #   (ie. assign all zero-count chans = 0)
-            outchan, counts = utils.gapfill(outchan,counts, config.NCHAN)
+            outchan, counts = utils.gapfill(outchan,counts, config['NCHAN'])
 
             #warn if recieved channel list is different length to chan array
             if len(outchan) != len(chan):
@@ -273,14 +270,14 @@ def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
 
             #if we are attempting to fit a background
             #   apply it, and save the corrected spectra
-            if config.DOBG: 
-                counts, bg = fitting.fitbaseline(counts, config.LOWBGADJUST)
+            if config['DOBG']: 
+                counts, bg = fitting.fitbaseline(counts, config['LOWBGADJUST'])
                 corrected[i,:]=counts
             else:
                 corrected=None  #assign dummy value to return
 
             #build colours if required
-            if config.DOCOLOURS == True: 
+            if config['DOCOLOURS'] == True: 
                 rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
             else:
                 rvals, bvals, gvals, totalcounts = None
@@ -289,7 +286,7 @@ def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
             #   end if we are doing a truncated run
             #   else throw a warning
             if i > (totalpx-2):
-                if (config.SHORTRUN == True):   #i > totalpx is expected for short run
+                if (config['SHORTRUN'] == True):   #i > totalpx is expected for short run
                     print("ending at:", i, idx)
                     idx=streamlen+1
                     break 
@@ -301,9 +298,9 @@ def parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
 
         runtime = time.time() - starttime
 
-        if config.SAVEPXSPEC:
+        if config['SAVEPXSPEC']:
                 print(f"saving spectrum-by-pixel to file")
-                np.savetxt(os.path.join(odir,  config.outfile + ".dat"), data, fmt='%i')
+                np.savetxt(os.path.join(odir,  config['outfile'] + ".dat"), data, fmt='%i')
             
         np.savetxt(os.path.join(odir, "pxlen.txt"), pxlen, fmt='%i')
         np.savetxt(os.path.join(odir, "xidx.txt"), xidx, fmt='%i')
