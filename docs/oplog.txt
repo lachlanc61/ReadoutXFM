@@ -20,6 +20,7 @@ geo_dwb12-2.GeoPIXE
 
     readbinary = 10m
     save txt = 4m20s
+    read txt = 
 
 
     memlog
@@ -30,6 +31,6 @@ geo_dwb12-2.GeoPIXE
             UMAPslow =  26G    =  5min
         full
             memstart= 4.7G
-            PCA      =  12/20G   =  40s
-            UMAPfast =          =  
-            UMAPslow =  26G    =  5min
+            PCA      =  30G   =  
+            UMAPfast =         =  
+            UMAPslow =  26G    =  
