@@ -15,30 +15,16 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 #MODIFIABLE CONSTANTS
 #-----------------------------------
 
-
-MIN_E=1.04      #minimum energy of interest
-MIN_XE=-5       #extended minimum x for ir
-ELASTIC=17.44   #energy of tube Ka
-EOFFSET=3.0
-MAX_E=30        #maximum energy of interest
-SDS=9           #standard deviations
-RGBLOG=False     #map RGB as log of intensity
-NCOLS=5         #no. colours
-#these should all be refactored into config, really
-
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
-
-#import config file directly
-CONFIG_FILE='config.yaml'
-config=utils.readcfg(CONFIG_FILE)
 
 # create a pointer to the module object instance itself
 #       functions like "self" for module
 #   https://stackoverflow.com/questions/1977362/how-to-create-module-wide-variables-in-python
 this = sys.modules[__name__]
 
+"""
 #vars for gaussians
 #   x-zero
 xzer=np.floor(-(MIN_XE/config['ESTEP'])).astype(int)   
@@ -50,6 +36,7 @@ rmu=MIN_E+sd*1.5    #red
 gmu=rmu+sd*3        #green
 bmu=ELASTIC-sd*1.5    #blue
 uvmu=ELASTIC+sd*1.5   #uv
+"""
 
 #-----------------------------------
 #FUNCTIONS
@@ -67,7 +54,7 @@ def initialise(config, e):
     NB: not certain this is optimal - just need to get e somehow
         could also create in parallel via config.NCHAN & ESTEP
     """
-    kachan=utils.lookfor(e,float(ELASTIC+EOFFSET))  #K-alpha channel
+    kachan=utils.lookfor(e,float(config['ELASTIC']+config['EOFFSET']))  #K-alpha channel
     npad=config['NCHAN']-kachan
 
     hsv=cm.get_cmap('hsv', kachan)
@@ -88,7 +75,7 @@ def initialise(config, e):
 
     return None
 
-def spectorgb(e, y):
+def spectorgb(config, e, y):
     """
     maps spectrum onto R G B channels 
     use HSV colourmap to generate
@@ -97,7 +84,7 @@ def spectorgb(e, y):
     #y=y-bg
 
     #if doing log y
-    if RGBLOG:
+    if config['RGBLOG']:
         #convert y to float for log
         yf=y.astype(float)
         #log y, excluding 0 values

@@ -33,7 +33,7 @@ CONFIG_FILE='config.yaml'
 config=utils.readcfg(CONFIG_FILE)
 
 #initialise directories relative to current script
-f, fname, script, spath, wdir, odir = utils.initialise()
+f, fname, script, spath, wdir, odir = utils.initialise(config)
 
 starttime = time.time()             #init timer
 chan=np.arange(0,config['NCHAN'])      #channels
@@ -41,7 +41,7 @@ energy=chan*config['ESTEP']            #energy list
 noisecorrect=True                   #apply adjustment to SNIP to fit noisy pixels
 
 #if we are creating colourmaps, set up colour routine
-if config['DOCOLOURS'] == True: colour.initialise(energy)
+if config['DOCOLOURS'] == True: colour.initialise(config, energy)
 
 
 #-----------------------------------
@@ -73,11 +73,11 @@ with open(f, mode='rb') as file: # rb = read binary
         #loop through all pixels and return data, corrected data
         #   and pixel header arrays
         data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-            = bitops.parsespec(stream, headerlen, chan, energy, mapx, mapy, totalpx, odir)
+            = bitops.parsespec(config, stream, headerlen, chan, energy, mapx, mapy, totalpx, odir)
     else:   
         #read these from a text file
         data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-            = bitops.readspec(config['outfile'], odir)
+            = bitops.readspec(config, odir)
 
     #show memory usage    
     utils.varsizes(locals().items())
@@ -95,7 +95,7 @@ with open(f, mode='rb') as file: # rb = read binary
 
     #perform clustering
     if config['DOCLUST']:
-        categories, classavg = clustering.complete(data, energy, totalpx, mapx, mapy, odir)
+        categories, classavg = clustering.complete(config, data, energy, totalpx, mapx, mapy, odir)
 
 print("CLEAN EXIT")
 exit()

@@ -255,7 +255,7 @@ def parsespec(config, stream, headerlen, chan, energy, mapx, mapy, totalpx, odir
 
             #read pixel record into spectrum and header param arrays, 
             # + reassign index at end of read
-            outchan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(idx, stream)
+            outchan, counts, pxlen[i], xidx[i], yidx[i], det[i], dt[i], idx = readpxrecord(config, idx, stream)
 
             #fill gaps in spectrum 
             #   (ie. assign all zero-count chans = 0)
@@ -278,7 +278,7 @@ def parsespec(config, stream, headerlen, chan, energy, mapx, mapy, totalpx, odir
 
             #build colours if required
             if config['DOCOLOURS'] == True: 
-                rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(energy, counts)
+                rvals[i], bvals[i], gvals[i], totalcounts[i] = colour.spectorgb(config, energy, counts)
             else:
                 rvals, bvals, gvals, totalcounts = None
             

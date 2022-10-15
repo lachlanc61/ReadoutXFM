@@ -57,3 +57,14 @@ medfont: 10    #default medium font
 lgfont: 12     #default large font
 lwidth: 1      #default linewidth
 bwidth: 1      #default border width
+
+#colour flags:
+MIN_E: 1.04      #minimum energy of interest
+MIN_XE: -5       #extended minimum x for ir
+ELASTIC: 17.44   #energy of tube Ka
+EOFFSET: 3.0
+MAX_E: 30        #maximum energy of interest
+SDS: 9           #standard deviations
+RGBLOG: False     #map RGB as log of intensity
+NCOLS: 5         #no. colours
+#these should all be refactored into config, really

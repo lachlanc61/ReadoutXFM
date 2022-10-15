@@ -199,10 +199,10 @@ def clustplt(embedding, categories, mapx, clusttimes, odir):
 def complete(config, data, energy, totalpx, mapx, mapy, odir):
 
     #   produce reduced-dim embedding per reducer
-    embedding, clusttimes = reduce(data, odir)
+    embedding, clusttimes = reduce(config, data, odir)
 
     #   cluster via kmeans on embedding
-    categories = dokmeans(embedding, totalpx, odir)
+    categories = dokmeans(config, embedding, totalpx, odir)
 
     #produce and save cluster averages
 
@@ -212,7 +212,7 @@ def complete(config, data, energy, totalpx, mapx, mapy, odir):
     #   cycle through reducers
     for i in range(len(reducers)):
         redname=getredname(i)
-        classavg[i]=sumclusters(data, categories[i])
+        classavg[i]=sumclusters(config, data, categories[i])
         
         for j in range(config['nclust']):
             print(f'saving reducer {redname} cluster {j} with shape {classavg[i,j,:].shape}', end='\r')
