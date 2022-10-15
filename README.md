@@ -22,7 +22,7 @@ This package performs dimensionality-reduction and clustering on XFM datasets, p
 
 # Method
 
-The instrument data format is a complex mixed JSON/binary:
+The instrument data format is a mixed JSON/binary with sparse pixel records:
 
 <p align="left">
   <img src="./docs/IMG/fileformat4.png" alt="Spectrum" width="1024">
@@ -31,9 +31,10 @@ The instrument data format is a complex mixed JSON/binary:
 
 - The JSON header is loaded as a dictionary, yielding map dimensions
     - (src.bitops.readgpxheader)
-- Pixel records are loaded into large 2D numpy array (shape = pixels * channels) 
+- Pixel records are parsed and loaded into a large 2D numpy array (shape = pixels * channels) 
     - (src.bitops.readpxrecord) 
-- Skipped channel records are reintroduced as zeroes
+    - Pixel parameters are extracted from the indidual pixel headers
+- Any missing channel records are reintroduced as zeroes
     - (src.utils.gapfill)
 
 #
