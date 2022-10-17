@@ -7,8 +7,14 @@ import matplotlib.pyplot as plt
 
 from scipy.stats import norm
 
-def readcfg(filepath):
-    with open(filepath, "r") as f:
+def readcfg(filename):
+    dir = os.path.realpath(__file__) #_file = current script
+    dir=os.path.dirname(dir) 
+    dir=os.path.dirname(dir)    #second call to get src/..
+
+    yamlfile=os.path.join(dir,filename)
+
+    with open(yamlfile, "r") as f:
         return yaml.safe_load(f)
 
 def initialise(config):
