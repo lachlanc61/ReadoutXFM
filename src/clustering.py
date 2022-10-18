@@ -166,6 +166,7 @@ def clustplt(embedding, categories, mapx, clusttimes, odir):
         ax[plotid].xaxis.set_label_position("top")
 
         #create the scatterplot for this reducer
+        # .T = transpose, rotates x and y
         ax[plotid].scatter(*embed.T, s=10, c=categories[i], cmap=KCMAPS[i], alpha=0.5)
 
         #add the runtime as text
