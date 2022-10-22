@@ -15,8 +15,8 @@ SEPSUMSPEC: True #
 SAVEPXSPEC: True #save pixel spectra
 DOBG: False      #apply background fitting
 LOWBGADJUST: True    #tweak background for low signal data
-SHORTRUN: False  #stop after first X% of pixels
-
+SHORTRUN: True  #stop after first X% of pixels
+shortpct: 20     #% of lines to run in short config
 
 CMAP: 'Set1' #default colourmap for clusters
 MAPX: 256    #default map x dim
@@ -47,8 +47,7 @@ outfile: "pxspec"
 
 #instrument config
 detid: "A"   #detector ID - not currently used
-shortpct: 10     #% of lines to run in short config
-nclust: 10       #no of clusters
+nclust: 5       #no of clusters
 
 #figure params (currently not used)
 figx: 20         #cm width of figure
