@@ -41,8 +41,8 @@ odirname: 'out'      #output directory relative to script
 #infile: "geo_nfpy11.GeoPIXE"
 #infile: "geo_ln_chle.GeoPIXE"
 #infile: "geo_dwb12-2.GeoPIXE"
-#infile:  "geo2.GeoPIXE"    #assign input file
-infile: "concrete.GeoPIXE"
+infile:  "geo2.GeoPIXE"    #assign input file
+#infile: "concrete.GeoPIXE"
 outfile: "pxspec"
 
 #instrument config
