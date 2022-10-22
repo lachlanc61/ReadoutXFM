@@ -21,23 +21,44 @@ Parses spectrum-by-pixel maps from IXRF XFM
 
 """
 
-"""
+
 #CLASSES
 class Map:
     def __init__(self, config, headerdict):
-        self.xres = headerdict['File Header']['Xres']  #map dimension x
-        self.yres = headerdict['File Header']['Yres']  #map dimension y
-        self.xdim = headerdict['File Header']['Yres']
-        self.ydim = headerdict['File Header']['Yres']
-        self.channels
-        self.energy
-        self.npx = self.xdim*self.mapy 
+        #header values
+        self.xres = headerdict['File Header']['Xres']           #map size x
+        self.yres = headerdict['File Header']['Yres']           #map size y
+        self.xdim = headerdict['File Header']['Width (mm)']     #map dimension x
+        self.ydim = headerdict['File Header']['Height (mm)']    #map dimension y
+        self.nchannels = int(headerdict['File Header']['Chan']) #no. channels
+        self.gain = float(headerdict['File Header']['Gain (eV)']/1000) #gain in kV
 
-class Pixels:
-"""
+        #initialise arrays
+        self.chan = np.arange(0,self.nchannels)     #channel series
+        self.energy = self.chan*self.gain           #energy series
+        self.xarray = np.arange(0, self.xdim, self.xdim/self.xres )   #position series x  
+        self.yarray = np.arange(0, self.ydim, self.ydim/self.yres )   #position series y
+            #NB: real positions likely better represented by centres of pixels eg. 0+(xdim/xres), xdim-(xdim/xres) 
+            #       need to ask IXRF how this is handled by Iridium
 
+        #derived vars
+        self.numpx = self.xres*self.yres 
 
+class PixelSeries:
+    def __init__(self, config, map):
+        #initialise pixel value arrays
+        self.pxlen=np.zeros(map.numpx,dtype=np.uint16)
+        self.xidx=np.zeros(map.numpx,dtype=np.uint16)
+        self.yidx=np.zeros(map.numpx,dtype=np.uint16)
+        self.det=np.zeros(map.numpx,dtype=np.uint16)
+        self.dt=np.zeros(map.numpx,dtype=np.uint16)
 
+        if config['DOCOLOURS'] == True:
+            #initalise pixel colour arrays
+            self.rvals=np.zeros(totalpx)
+            self.gvals=np.zeros(totalpx)
+            self.bvals=np.zeros(totalpx)
+            self.totalcounts=np.zeros(totalpx)
 
 #-----------------------------------
 #vars
