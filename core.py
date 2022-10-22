@@ -42,7 +42,7 @@ class Map:
             #       need to ask IXRF how this is handled by Iridium
 
         #derived vars
-        self.numpx = self.xres*self.yres 
+        self.numpx = self.xres*self.yres        #expected number of pixels
 
 class PixelSeries:
     def __init__(self, config, map):
@@ -53,12 +53,11 @@ class PixelSeries:
         self.det=np.zeros(map.numpx,dtype=np.uint16)
         self.dt=np.zeros(map.numpx,dtype=np.uint16)
 
-        if config['DOCOLOURS'] == True:
-            #initalise pixel colour arrays
-            self.rvals=np.zeros(totalpx)
-            self.gvals=np.zeros(totalpx)
-            self.bvals=np.zeros(totalpx)
-            self.totalcounts=np.zeros(totalpx)
+        #create colour-associated attrs even if not doing colours
+        self.rvals=np.zeros(map.numpx)
+        self.gvals=np.zeros(map.numpx)
+        self.bvals=np.zeros(map.numpx)
+        self.totalcounts=np.zeros(map.numpx)
 
 #-----------------------------------
 #vars

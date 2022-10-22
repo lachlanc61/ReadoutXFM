@@ -29,7 +29,17 @@ doset=1
 #dopandas=True
 
 if doset == 0:  #using pandas
+    """
+    some pandas basics
+    https://stackoverflow.com/questions/44424594/converting-numpy-array-into-dataframe-column
+    df.assign : assign a series/np.array as column via name=
+
+    https://stackoverflow.com/questions/13842088/set-value-for-particular-cell-in-pandas-dataframe-using-index
+    df.at[row,col] : write to value at cell
+                        #using eg. df.iloc to access cell gives a copy/view, does not change actual df
     
+    """
+   
     df = pd.DataFrame()
     #df = df.assign(pxlen=np.random.rand(npx))
     #df = df.assign(xidx=np.random.rand(npx))
@@ -87,7 +97,6 @@ elif doset == 3:    #using numpy arrays via a class
 runtime = time.time() - starttime
 
 print("TIME (s):", runtime)
-
 
 
 """
