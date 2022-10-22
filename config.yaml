@@ -9,13 +9,17 @@ NCHAN: 4096
 ESTEP: 0.01
 CHARENCODE: 'utf-8'
 
-DOCOLOURS: True  #run colourmap1
-DOCLUST: True    #run clustering
-SEPSUMSPEC: True #
+DOCOLOURS: True   #run colourmap1
+DOCLUST: True     #run clustering
+DOWRITE: True     #write out
+
+SEPSUMSPEC: True #sum class spectra
 SAVEPXSPEC: True #save pixel spectra
+
 DOBG: False      #apply background fitting
-LOWBGADJUST: True    #tweak background for low signal data
-SHORTRUN: True  #stop after first X% of pixels
+LOWBGADJUST: False    #tweak background for low signal data
+
+SHORTRUN: False  #stop after first X% of pixels
 shortpct: 20     #% of lines to run in short config
 
 CMAP: 'Set1' #default colourmap for clusters
@@ -38,12 +42,17 @@ FORCEKMEANS: True    #always recalc kmeans
 wdirname: 'data'     #working directory relative to script
 odirname: 'out'      #output directory relative to script
 
+chunksize: 1048576
+  #1,048,576 = 100 Mb
+  #1073741824 = 1 Gb
+
 #infile: "geo_nfpy11.GeoPIXE"
 #infile: "geo_ln_chle.GeoPIXE"
 #infile: "geo_dwb12-2.GeoPIXE"
 infile:  "geo2.GeoPIXE"    #assign input file
 #infile: "concrete.GeoPIXE"
 outfile: "pxspec"
+convfile: "converted.GeoPIXE"
 
 #instrument config
 detid: "A"   #detector ID - not currently used

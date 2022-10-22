@@ -131,7 +131,7 @@ def sumclusters(config, dataset, catlist):
         specsum[i,:]=(np.sum(datcat,axis=0))/pxincat
     return specsum
 
-def clustplt(embedding, categories, mapx, clusttimes, odir):
+def clustplt(config, embedding, categories, mapx, clusttimes, odir):
     """
     receives arrays from reducers and kmeans
     + time to cluster
@@ -168,6 +168,8 @@ def clustplt(embedding, categories, mapx, clusttimes, odir):
         #create the scatterplot for this reducer
         # .T = transpose, rotates x and y
         ax[plotid].scatter(*embed.T, s=10, c=categories[i], cmap=KCMAPS[i], alpha=0.5)
+        for j in np.arange(config['nclust']):
+            print(j,len(np.where(categories[i]==j)[0]))
 
         #add the runtime as text
         ax[plotid].text(
@@ -223,7 +225,7 @@ def complete(config, data, energy, totalpx, mapx, mapy, odir):
         np.savetxt(os.path.join(odir, "sum_" + redname + ".txt"), np.c_[energy, classavg[i,:,:].transpose(1,0)], fmt='%1.5e')             
         #plt.plot(energy, clustaverages[i,j,:])
     
-    clustplt(embedding, categories, mapx, clusttimes, odir)
+    clustplt(config, embedding, categories, mapx, clusttimes, odir)
 
     return categories, classavg
 

@@ -21,6 +21,24 @@ Parses spectrum-by-pixel maps from IXRF XFM
 
 """
 
+"""
+#CLASSES
+class Map:
+    def __init__(self, config, headerdict):
+        self.xres = headerdict['File Header']['Xres']  #map dimension x
+        self.yres = headerdict['File Header']['Yres']  #map dimension y
+        self.xdim = headerdict['File Header']['Yres']
+        self.ydim = headerdict['File Header']['Yres']
+        self.channels
+        self.energy
+        self.npx = self.xdim*self.mapy 
+
+class Pixels:
+"""
+
+
+
+
 #-----------------------------------
 #vars
 #-----------------------------------
@@ -32,70 +50,85 @@ CONFIG_FILE='config.yaml'
 
 config=utils.readcfg(CONFIG_FILE)
 
-#initialise directories relative to current script
-f, fname, script, spath, wdir, odir = utils.initialise(config)
+#initialise read file and all directories relative to current script
+script, spath, wdir, odir = utils.initdirs(config)
+
+fi, fname, fo, oname = utils.initfiles(config, wdir, odir)
 
 starttime = time.time()             #init timer
-chan=np.arange(0,config['NCHAN'])      #channels
-energy=chan*config['ESTEP']            #energy list
+
 noisecorrect=True                   #apply adjustment to SNIP to fit noisy pixels
-
-#if we are creating colourmaps, set up colour routine
-if config['DOCOLOURS'] == True: colour.initialise(config, energy)
-
 
 #-----------------------------------
 #MAIN START
 #-----------------------------------
 
-#open the datafile 
-with open(f, mode='rb') as file: # rb = read binary
+#assign input file object for reading
+infile = open(fi, mode='rb') # rb = read binary
+outfile = open(fo, mode='wb')   #wb = write binary
 
-    #generate bytestream
-    stream = file.read()         #NB. to read in chunks, add chunk size as read(SIZE)
-    streamlen=len(stream)
+#generate initial bytestream
+stream = infile.read()         
+#stream = infile.read(config['chunksize'])   
+streamlen=len(stream)
 
-    headerlen, mapx, mapy, totalpx = bitops.readgpxheader(stream)
+idx, headerdict = bitops.readgpxheader(stream)
 
-    #   if we are skipping some of the file
-    #       assign the ratio and adjust totalpx
-    if config['SHORTRUN']:
-        skipratio=config['shortpct']/100
-        trunc_y=int(np.ceil(mapy*skipratio))
-        totalpx=mapx*trunc_y
-        print(f"SHORT RUN: ending at {skipratio*100} %")
+#get map dimensions from header
+try:
+    mapx=headerdict['File Header']['Xres']  #map dimension x
+    mapy=headerdict['File Header']['Yres']  #map dimension y
+    totalpx=mapx*mapy   
+    chan=np.arange(0,headerdict['File Header']['Chan'])      #channels
+    energy=chan*headerdict['File Header']['Gain (eV)']/1000  #energy list
+except:
+    raise ValueError("FATAL: failure reading values from header")
 
-    print(f"pixels expected: {totalpx}")
-    print("---------------------------")
+#if we are creating colourmaps, set up colour routine
+if config['DOCOLOURS'] == True: colour.initialise(config, energy)
 
-    #if we are parsing the .GeoPIXE file
-    if config['FORCEPARSE']:
-        #loop through all pixels and return data, corrected data
-        #   and pixel header arrays
-        data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-            = bitops.parsespec(config, stream, headerlen, chan, energy, mapx, mapy, totalpx, odir)
-    else:   
-        #read these from a text file
-        data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-            = bitops.readspec(config, odir)
+#   if we are skipping some of the file
+#       assign the ratio and adjust totalpx
+if config['SHORTRUN']:
+    skipratio=config['shortpct']/100
+    trunc_y=int(np.ceil(mapy*skipratio))
+    totalpx=mapx*trunc_y
+    print(f"SHORT RUN: ending at {skipratio*100} %")
 
-    #show memory usage    
-    utils.varsizes(locals().items())
+print(f"pixels expected: {totalpx}")
+print("---------------------------")
 
-    #manually drop the bytestream from memory
-    #   clustering is memory intensive, better to get this removed asap
-    del stream
-    gc.collect()
+#if we are parsing the .GeoPIXE file
+if config['FORCEPARSE']:
+    #loop through all pixels and return data, corrected data
+    #   and pixel header arrays
+    data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
+        = bitops.parsespec(config, stream, idx, headerdict, odir)
+else:   
+    #read these from a text file
+    data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
+        = bitops.readspec(config, odir)
 
-    #perform post-analysis:
+#show memory usage    
+utils.varsizes(locals().items())
 
-    #create and show colour map
-    if config['DOCOLOURS'] == True:
-        rgbarray=colour.complete(rvals, gvals, bvals, mapx, nrows, odir)
+#manually drop the bytestream from memory
+#   clustering is memory intensive, better to get this removed asap
+del stream
+gc.collect()
 
-    #perform clustering
-    if config['DOCLUST']:
-        categories, classavg = clustering.complete(config, data, energy, totalpx, mapx, mapy, odir)
+#perform post-analysis:
+
+#create and show colour map
+if config['DOCOLOURS'] == True:
+    rgbarray=colour.complete(rvals, gvals, bvals, mapx, nrows, odir)
+
+#perform clustering
+if config['DOCLUST']:
+    categories, classavg = clustering.complete(config, data, energy, totalpx, mapx, mapy, odir)
+
+infile.close()
+outfile.close()
 
 print("CLEAN EXIT")
 exit()

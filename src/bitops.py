@@ -173,57 +173,36 @@ def readgpxheader(stream):
 
         #create a human-readable dump for debugging
         headerdump = json.dumps(headerdict, indent=4, sort_keys=False)
-        
-        #get params
-        mapx=headerdict['File Header']['Xres']  #map dimension x
-        mapy=headerdict['File Header']['Yres']  #map dimension y
-
-    #assign map size based on dimensions
-    totalpx=mapx*mapy     
 
     #print map params
     print(f"header length: {headerlen} (bytes)")
-    print(f"map dimensions: {mapx} x {mapy}")
 
-    return headerlen, mapx, mapy, totalpx
+    #set pointer index to length of header + 2 bytes
+    idx = headerlen+2
 
-
-def readspec(config, odir):
-    """
-    read data from a pre-saved datfile
-        does not currently return as much information as the full parse
-    """
-    print("loading from file", config['outfile'])
-    data = np.loadtxt(os.path.join(odir, config['outfile']), dtype=np.uint16)
-    pxlen=np.loadtxt(os.path.join(odir, "pxlen.txt"), dtype=np.uint16)
-    xidx=np.loadtxt(os.path.join(odir, "xidx.txt"), dtype=np.uint16)
-    yidx=np.loadtxt(os.path.join(odir, "yidx.txt"), dtype=np.uint16)
-    det=np.loadtxt(os.path.join(odir, "detector.txt"), dtype=np.uint16)
-    dt=np.loadtxt(os.path.join(odir, "dt.txt"), dtype=np.uint16)
-    print("loaded successfully", config['outfile']) 
-
-    corrected=None
-    rvals=None
-    bvals=None
-    gvals=None
-    totalcounts=None
-    nrows=None
-
-    return(data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows) 
+    return idx, headerdict
 
 
-def parsespec(config, stream, headerlen, chan, energy, mapx, mapy, totalpx, odir):
+def parsespec(config, stream, idx, headerdict, odir):
         """
-        read the pixel records
-        receives stream, headerlen 
+        parse the pixel records from .GeoPIXE file
+        takes stream of bytes, header length, chan/emap
 
         """
         starttime = time.time()             #init timer
 
-        #assign starting pixel index 
-        idx=headerlen+2 #legnth of header + 2 bytes
         streamlen=len(stream)
 
+        #get map dimensions from header
+        try:
+            mapx=headerdict['File Header']['Xres']  #map dimension x
+            mapy=headerdict['File Header']['Yres']  #map dimension y
+            totalpx=mapx*mapy   
+            chan=np.arange(0,headerdict['File Header']['Chan'])      #channels
+            energy=chan*headerdict['File Header']['Gain (eV)']/1000  #energy list
+        except:
+            raise ValueError("FATAL: failure reading values from header")
+        
         #initialise pixel param arrays
         pxlen=np.zeros(totalpx,dtype=np.uint16)
         xidx=np.zeros(totalpx,dtype=np.uint16)
@@ -321,3 +300,27 @@ def parsespec(config, stream, headerlen, chan, energy, mapx, mapy, totalpx, odir
         )
 
         return(data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows)
+
+
+def readspec(config, odir):
+    """
+    read data from a pre-saved datfile
+        does not currently return as much information as the full parse
+    """
+    print("loading from file", config['outfile'])
+    data = np.loadtxt(os.path.join(odir, config['outfile']), dtype=np.uint16)
+    pxlen=np.loadtxt(os.path.join(odir, "pxlen.txt"), dtype=np.uint16)
+    xidx=np.loadtxt(os.path.join(odir, "xidx.txt"), dtype=np.uint16)
+    yidx=np.loadtxt(os.path.join(odir, "yidx.txt"), dtype=np.uint16)
+    det=np.loadtxt(os.path.join(odir, "detector.txt"), dtype=np.uint16)
+    dt=np.loadtxt(os.path.join(odir, "dt.txt"), dtype=np.uint16)
+    print("loaded successfully", config['outfile']) 
+
+    corrected=None
+    rvals=None
+    bvals=None
+    gvals=None
+    totalcounts=None
+    nrows=None
+
+    return(data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows) 
