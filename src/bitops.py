@@ -79,7 +79,7 @@ class Map:
 
             #read pixel record into spectrum and header param arrays, 
             # + reassign index at end of read
-            outchan, counts = readpxrecord(config, self, pixelseries)
+            outchan, counts, pixelseries.pxlen[self.pxidx], pixelseries.xidx[self.pxidx], pixelseries.yidx[self.pxidx], pixelseries.det[self.pxidx], pixelseries.dt[self.pxidx] = readpxrecord(config, self)
 
             #fill gaps in spectrum 
             #   (ie. assign all zero-count chans = 0)
@@ -112,7 +112,7 @@ class Map:
                     self.idx=self.fullsize+1
                     break 
                 else:
-                    print(f"pixel count {self.pxidx} reached expected map size {self.numpx}, ending parse")
+                    print(f"WARNING: pixel count {self.pxidx} exceeds expected map size {self.numpx}")
                     break
             self.pxidx+=1    #next pixel
         
@@ -262,7 +262,7 @@ def readgpxheader(stream):
     return idx, headerdict
 
 
-def readpxrecord(config, map, pixelseries):
+def readpxrecord(config, map):
     """"
     Pixel Record
     Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
@@ -309,14 +309,11 @@ def readpxrecord(config, map, pixelseries):
     if (config['DEBUG']): print(f"next bytes at {idx}: {stream[idx:idx+config['PXHEADERLEN']]}")
 
     #read each header field and step idx to end of field
-    
-    pixelseries.pxlen[map.pxidx], idx=binunpack(stream,idx,"<I")
-    pxlen=pixelseries.pxlen[map.pxidx]
-
-    pixelseries.xidx[map.pxidx], idx=binunpack(stream,idx,"<H")
-    pixelseries.yidx[map.pxidx], idx=binunpack(stream,idx,"<H")
-    pixelseries.det[map.pxidx], idx=binunpack(stream,idx,"<H")
-    pixelseries.dt[map.pxidx], idx=binunpack(stream,idx,"<f")
+    pxlen, idx=binunpack(stream,idx,"<I")
+    xcoord, idx=binunpack(stream,idx,"<H")
+    ycoord, idx=binunpack(stream,idx,"<H")
+    det, idx=binunpack(stream,idx,"<H")
+    dt, idx=binunpack(stream,idx,"<f")
 
     #initialise channel index and result arrays
     j=0 #channel index
@@ -339,7 +336,7 @@ def readpxrecord(config, map, pixelseries):
     map.idx = idx
     map.stream = stream
 
-    return(chan, counts)
+    return(chan, counts, pxlen, xcoord, ycoord, det, dt)
 
 def readspec(config, odir):
     """
