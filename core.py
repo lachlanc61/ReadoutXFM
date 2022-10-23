@@ -151,6 +151,6 @@ add background fitting:
 
 OO:
     map+pxseries:           0.001852 s
-
+    chunk parsing:          0.002505 s
 
 """

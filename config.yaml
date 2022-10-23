@@ -1,13 +1,18 @@
 #-----------------------------------
-#CONSTANTS/FLAGS
+#HARDCODED CONSTANTS (eg. filetype properties)
 #-----------------------------------
 FTYPE: ".GeoPIXE"    #valid: ".GeoPIXE"
 
 PXHEADERLEN: 16  #pixel header size
+BYTESPERCHAN: 4
 PXFLAG: "DP"
 NCHAN: 4096
 ESTEP: 0.01
 CHARENCODE: 'utf-8'
+
+#-----------------------------------
+#FLAGS
+#-----------------------------------
 
 DOCOLOURS: True   #run colourmap1
 DOCLUST: True     #run clustering

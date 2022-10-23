@@ -24,16 +24,19 @@ class Map:
 
         #get total size of file to parse
         self.fullsize = os.path.getsize(fi)
+        self.chunksize = config['chunksize']
 
         #generate initial bytestream
-        self.stream = self.infile.read()         
-        #stream = infile.read(config['chunksize'])   
+        #self.stream = self.infile.read()         
+        self.stream = self.infile.read(self.chunksize)   
         self.streamlen=len(self.stream)
 
-        self.idx, self.headerdict = readgpxheader(self.stream)
+        self.idx=0
+        self.chunkidx = self.idx
 
-        self.fullidx = self.idx
+        self.idx, self.headerdict = readgpxheader(self)
 
+        
         #try to assign values from header
         try:
             self.xres = self.headerdict['File Header']['Xres']           #map size x
@@ -70,10 +73,11 @@ class Map:
 
         #loop through pixels
         #while self.fullidx < self.fullsize:
-        while self.idx < self.streamlen:
-
+        #while self.idx < self.streamlen:
+        while True:
             #print pixel index every row px
             if self.pxidx % self.xres == 0: 
+                self.fullidx=self.chunkidx+self.idx
                 print(f"Row {self.rowidx}/{self.yres} at pixel {self.pxidx}, byte {self.fullidx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
                 self.rowidx+=1
 
@@ -106,7 +110,7 @@ class Map:
             #if pixel index greater than expected no. pixels based on map dimensions
             #   end if we are doing a truncated run
             #   else throw a warning
-            if self.pxidx >= (self.numpx-1):
+            if self.pxidx >= (self.numpx):
                 if (config['SHORTRUN'] == True):   #i > totalpx is expected for short run
                     print("ending at:", self.pxidx, self.idx)
                     self.idx=self.fullsize+1
@@ -126,6 +130,21 @@ class Map:
             data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
             = readspec(config, odir)
         """
+
+    def next(self):
+        self.chunkidx = self.chunkidx + self.idx
+
+        self.stream = self.infile.read(self.chunksize)
+
+        if len(self.stream) != self.streamlen:
+            print("WARNING: final stream")
+
+        self.streamlen=len(self.stream)
+        self.idx=0
+
+        if not self.stream:
+            print("no stream found")
+            #exit()
 
     def closefiles(self):
         self.infile.close()
@@ -169,7 +188,7 @@ class PixelSeries:
 #FUNCTIONS
 #-----------------------------------
 
-def binunpack(stream, idx, sformat):
+def binunpack(map, sformat):
     """
     parse binary data via struct.unpack
     takes:
@@ -191,19 +210,42 @@ def binunpack(stream, idx, sformat):
         print(f"ERROR: {sformat} not recognised by local function binunpack")
         exit(0)
 
-    """
-    CHECK AND UPDATE STREAM and INDEX HERE
-    """
+    #if perfect end
+    #   unpack then flag next chunk
+    if map.idx == (len(map.stream)-nbytes):
+        retval = struct.unpack(sformat, map.stream[map.idx:map.idx+nbytes])[0]
+        map.idx=map.idx+nbytes
+        map.next()
+    #if end mid unpack
+    #   unpack partial, get next chunk, unpack next partial and concat
+    elif map.idx > (len(map.stream)-nbytes):
+        remaining=(len(map.stream)-map.idx)
+        partial1 = map.stream[map.idx:map.idx+remaining]
+        map.idx=map.idx+remaining
+        map.next()
+        partial2 = map.stream[map.idx:map.idx+(nbytes-remaining)]
+        map.idx=map.idx+(nbytes-remaining)
+        #concat partials
+        partial=partial1+partial2
+        #WARNING: DOES NOT WORK YET
+        # aim is to concat bytes, apparently don't behave like strings
+        # need to convert to bytearray or similar
+        # https://stackoverflow.com/questions/28130722/python-bytes-concatenation
+        retval=struct.unpack(sformat, partial)[0]
 
-    #struct unpack outputs tuple
-    #want int so take first value
-    retval = struct.unpack(sformat, stream[idx:idx+nbytes])[0]
-    idx=idx+nbytes
-    return(retval, idx)    
+    #if not at end
+    #   unpack and increment index
+    else:
+        #struct unpack outputs tuple
+        #want int so take first value
+        retval = struct.unpack(sformat, map.stream[map.idx:map.idx+nbytes])[0]
+        map.idx=map.idx+nbytes
+
+    return(retval)
 
 
 
-def readgpxheader(stream):
+def readgpxheader(map):
     """
     read header 
         receives stream
@@ -219,22 +261,24 @@ def readgpxheader(stream):
         "---------------------------"
     )
 
-    streamlen=len(stream)
+    streamlen=len(map.stream)
     print(f"filesize: {streamlen} (bytes)")
-
-    headerlen=binunpack(stream,0,"<H")[0]
+    if map.idx == 0:
+        headerlen=binunpack(map,"<H")
+    else:
+        raise ValueError("FATAL: attempting to read file header from nonzero index")
 
     #check for header
     #   pixels start with "DP" (=20550 as <uint16)
     #   if we find this immediately, header is zero length - cannot proceed
     #provided header is present
     #   read params from header
-
     if headerlen == 20550:  #(="DP" as <uint16)
-        print("WARNING: no header found")
-        headerlen=0
-        print("FATAL: map dimensions unknown, cannot build map")
-        exit()
+        raise ValueError("FATAL: file header missing, cannot read map params")
+    #also fail if headerlength is below arbitrary value
+    elif headerlen <= 500:
+        raise ValueError("FATAL: file header too small, check input")
+    #else proceed
     else:
         """
         if header present, read as json
@@ -243,7 +287,7 @@ def readgpxheader(stream):
         #pull slice of byte stream corresponding to header
         #   bytes[0-2]= headerlen
         #   headerlen doesn't include trailing '\n' '}', so +2
-        headerstream=stream[2:headerlen+2]
+        headerstream=map.stream[2:headerlen+2]
         #read it as utf8
         headerstream = headerstream.decode('utf8')
         
@@ -285,58 +329,51 @@ def readpxrecord(config, map, pixelseries):
     Read binary as chunks
     https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
     """
-    idx=map.idx
-    pxidx=map.pxidx
-    stream=map.stream
-
-    pxstart=idx
+    
+    pxstart=map.idx
 
 #   check for pixel start flag "DP" at first position after header:
     #   unpack first two bytes after header as char
-    pxflag=struct.unpack("cc", stream[idx:idx+2])[:]
+    pxflag=struct.unpack("cc", map.stream[map.idx:map.idx+2])[:]
 
     #   use join to merge into string
     pxflag="".join([pxflag[0].decode(config['CHARENCODE']),pxflag[1].decode(config['CHARENCODE'])])
 
     #   check if string is "DP" - if not, fail
     if pxflag != config['PXFLAG']:
-        print(f"ERROR: pixel flag 'DP' expected but not found at byte {idx}")
+        print(f"ERROR: pixel flag 'DP' expected but not found at byte {map.idx}")
         exit()
 
-    idx=idx+2   #step over "DP"
+    map.idx=map.idx+2   #step over "DP"
 
     #read each header field and step idx to end of field
-    pxlen, idx=binunpack(stream,idx,"<I")
-    xcoord, idx=binunpack(stream,idx,"<H")
-    ycoord, idx=binunpack(stream,idx,"<H")
-    det, idx=binunpack(stream,idx,"<H")
-    dt, idx=binunpack(stream,idx,"<f")
+    pxlen=binunpack(map,"<I")
+    xcoord=binunpack(map,"<H")
+    ycoord=binunpack(map,"<H")
+    det=binunpack(map,"<H")
+    dt=binunpack(map,"<f")
     #   faster to unpack into temp variables vs directly into pbject attrs. not sure why atm
 
     #initialise channel index and result arrays
     j=0 #channel index
-    chan=np.zeros(int((pxlen-config['PXHEADERLEN'])/4), dtype=int)
-    counts=np.zeros(int((pxlen-config['PXHEADERLEN'])/4), dtype=int)
+    chan=np.zeros(int((pxlen-config['PXHEADERLEN'])/config['BYTESPERCHAN']), dtype=int)
+    counts=np.zeros(int((pxlen-config['PXHEADERLEN'])/config['BYTESPERCHAN']), dtype=int)
     #       4 = no. bytes in each x,y pair
     #         = 2x2 bytes each 
 
     #iterate through channel/count pairs 
     #   until byte index passes pxlen
-    while idx < (pxstart+pxlen):
-        chan[j], idx=binunpack(stream,idx,"<H")
-        counts[j], idx=binunpack(stream,idx,"<H")
-        j=j+1   #next channel
+    while j*config['BYTESPERCHAN'] < pxlen-config['PXHEADERLEN']:
+        chan[j]=binunpack(map,"<H")
+        counts[j]=binunpack(map,"<H")
+        j+=1    #next channel
 
     #assign object attrs from temp vars
-    pixelseries.pxlen[pxidx]=pxlen
-    pixelseries.xidx[pxidx]=xcoord
-    pixelseries.yidx[pxidx]=ycoord
-    pixelseries.det[pxidx]=det
-    pixelseries.dt[pxidx]=dt
-
-    #update map positions
-    map.idx = idx
-    map.stream = stream
+    pixelseries.pxlen[map.pxidx]=pxlen
+    pixelseries.xidx[map.pxidx]=xcoord
+    pixelseries.yidx[map.pxidx]=ycoord
+    pixelseries.det[map.pxidx]=det
+    pixelseries.dt[map.pxidx]=dt
 
     return(chan, counts)
 
