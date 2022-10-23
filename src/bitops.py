@@ -79,7 +79,7 @@ class Map:
 
             #read pixel record into spectrum and header param arrays, 
             # + reassign index at end of read
-            outchan, counts, pixelseries.pxlen[self.pxidx], pixelseries.xidx[self.pxidx], pixelseries.yidx[self.pxidx], pixelseries.det[self.pxidx], pixelseries.dt[self.pxidx] = readpxrecord(config, self)
+            outchan, counts = readpxrecord(config, self, pixelseries)
 
             #fill gaps in spectrum 
             #   (ie. assign all zero-count chans = 0)
@@ -262,7 +262,7 @@ def readgpxheader(stream):
     return idx, headerdict
 
 
-def readpxrecord(config, map):
+def readpxrecord(config, map, pixelseries):
     """"
     Pixel Record
     Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
@@ -286,6 +286,7 @@ def readpxrecord(config, map):
     https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
     """
     idx=map.idx
+    pxidx=map.pxidx
     stream=map.stream
 
     pxstart=idx
@@ -301,12 +302,8 @@ def readpxrecord(config, map):
     if pxflag != config['PXFLAG']:
         print(f"ERROR: pixel flag 'DP' expected but not found at byte {idx}")
         exit()
-    else:
-        if (config['DEBUG']): print(f"pixel at: {idx} bytes")
 
     idx=idx+2   #step over "DP"
-
-    if (config['DEBUG']): print(f"next bytes at {idx}: {stream[idx:idx+config['PXHEADERLEN']]}")
 
     #read each header field and step idx to end of field
     pxlen, idx=binunpack(stream,idx,"<I")
@@ -314,6 +311,7 @@ def readpxrecord(config, map):
     ycoord, idx=binunpack(stream,idx,"<H")
     det, idx=binunpack(stream,idx,"<H")
     dt, idx=binunpack(stream,idx,"<f")
+    #   faster to unpack into temp variables vs directly into pbject attrs. not sure why atm
 
     #initialise channel index and result arrays
     j=0 #channel index
@@ -325,18 +323,22 @@ def readpxrecord(config, map):
     #iterate through channel/count pairs 
     #   until byte index passes pxlen
     while idx < (pxstart+pxlen):
-        if (config['DEBUG2']): print(f"next bytes at {idx}: {stream[idx:idx+8]}")
         chan[j], idx=binunpack(stream,idx,"<H")
         counts[j], idx=binunpack(stream,idx,"<H")
-        if (config['DEBUG2']): print(f"idx {idx} x {chan[j]} y {counts[j]}")
         j=j+1   #next channel
-    if (config['DEBUG']): print(f"following bytes at {idx}: {stream[idx:idx+10]}")
+
+    #assign object attrs from temp vars
+    pixelseries.pxlen[pxidx]=pxlen
+    pixelseries.xidx[pxidx]=xcoord
+    pixelseries.yidx[pxidx]=ycoord
+    pixelseries.det[pxidx]=det
+    pixelseries.dt[pxidx]=dt
 
     #update map positions
     map.idx = idx
     map.stream = stream
 
-    return(chan, counts, pxlen, xcoord, ycoord, det, dt)
+    return(chan, counts)
 
 def readspec(config, odir):
     """
