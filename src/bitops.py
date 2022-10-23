@@ -16,8 +16,11 @@ class Map:
     def __init__(self, config, fi, fo):
 
         #assign input file object for reading
-        self.infile = open(fi, mode='rb') # rb = read binary
-        self.outfile = open(fo, mode='wb')   #wb = write binary
+        try:
+            self.infile = open(fi, mode='rb') # rb = read binary
+            self.outfile = open(fo, mode='wb')   #wb = write binary
+        except FileNotFoundError:
+            print("FATAL: incorrect filepath/files not found")
 
         #get total size of file to parse
         self.fullsize = os.path.getsize(fi)
@@ -62,22 +65,21 @@ class Map:
         print(f"pixels expected: {self.numpx}")
         print("---------------------------")
 
-        idx=self.idx
-        i=0    #pixel counter
-        j=0 #row counter
+        self.pxidx=0    #pixel counter
+        self.rowidx=0 #row counter
 
         #loop through pixels
         #while self.fullidx < self.fullsize:
-        while idx < self.streamlen:
+        while self.idx < self.streamlen:
 
             #print pixel index every row px
-            if i % self.xdim == 0: 
-                print(f"Row {j}/{self.ydim} at pixel {i}, byte {idx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
-                j+=1
+            if self.pxidx % self.xres == 0: 
+                print(f"Row {self.rowidx}/{self.yres} at pixel {self.pxidx}, byte {self.fullidx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
+                self.rowidx+=1
 
             #read pixel record into spectrum and header param arrays, 
             # + reassign index at end of read
-            outchan, counts, pixelseries.pxlen[i], pixelseries.xidx[i], pixelseries.yidx[i], pixelseries.det[i], pixelseries.dt[i] = readpxrecord(config, self)
+            outchan, counts = readpxrecord(config, self, pixelseries)
 
             #fill gaps in spectrum 
             #   (ie. assign all zero-count chans = 0)
@@ -88,32 +90,35 @@ class Map:
                 print("WARNING: unexpected length of channel list")
         
             #assign counts into data array
-            pixelseries.data[i,:]=counts
+            pixelseries.data[self.pxidx,:]=counts
 
             #if we are attempting to fit a background
             #   apply it, and save the corrected spectra
             if config['DOBG']: 
                 counts, bg = fitting.fitbaseline(counts, config['LOWBGADJUST'])
-                pixelseries.corrected[i,:]=counts
+                pixelseries.corrected[self.pxidx,:]=counts
 
             #build colours if required
             if config['DOCOLOURS'] == True: 
-                pixelseries.rvals[i], pixelseries.bvals[i], pixelseries.gvals[i], pixelseries.totalcounts[i] = colour.spectorgb(config, self.energy, counts)
+                pixelseries.rvals[self.pxidx], pixelseries.bvals[self.pxidx], pixelseries.gvals[self.pxidx], pixelseries.totalcounts[self.pxidx] = colour.spectorgb(config, self.energy, counts)
             
+
             #if pixel index greater than expected no. pixels based on map dimensions
             #   end if we are doing a truncated run
             #   else throw a warning
-            if i > (self.numpx-2):
+            if self.pxidx >= (self.numpx-1):
                 if (config['SHORTRUN'] == True):   #i > totalpx is expected for short run
-                    print("ending at:", i, idx)
-                    idx=self.fullsize+1
+                    print("ending at:", self.pxidx, self.idx)
+                    self.idx=self.fullsize+1
                     break 
                 else:
-                    print(f"WARNING: pixel count {i} exceeds expected map size {self.numpx}")
-            self.idx=idx
-            i+=1    #next pixel
-        pixelseries.npx=i
-        pixelseries.nrows=j #store no. rows read successfully
+                    print(f"pixel count {self.pxidx} reached expected map size {self.numpx}, ending parse")
+                    break
+            self.pxidx+=1    #next pixel
+        
+        #store pixels and rows read successfully
+        pixelseries.npx=self.pxidx+1
+        pixelseries.nrows=self.rowidx+1 
 
     def read(self, config, odir):
         pass
@@ -121,6 +126,10 @@ class Map:
             data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
             = readspec(config, odir)
         """
+
+    def closefiles(self):
+        self.infile.close()
+        self.outfile.close()
 
 class PixelSeries:
     def __init__(self, config, map):
@@ -253,7 +262,7 @@ def readgpxheader(stream):
     return idx, headerdict
 
 
-def readpxrecord(config, map):
+def readpxrecord(config, map, pixelseries):
     """"
     Pixel Record
     Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
@@ -300,11 +309,14 @@ def readpxrecord(config, map):
     if (config['DEBUG']): print(f"next bytes at {idx}: {stream[idx:idx+config['PXHEADERLEN']]}")
 
     #read each header field and step idx to end of field
-    pxlen, idx=binunpack(stream,idx,"<I")
-    xcoord, idx=binunpack(stream,idx,"<H")
-    ycoord, idx=binunpack(stream,idx,"<H")
-    det, idx=binunpack(stream,idx,"<H")
-    dt, idx=binunpack(stream,idx,"<f")
+    
+    pixelseries.pxlen[map.pxidx], idx=binunpack(stream,idx,"<I")
+    pxlen=pixelseries.pxlen[map.pxidx]
+
+    pixelseries.xidx[map.pxidx], idx=binunpack(stream,idx,"<H")
+    pixelseries.yidx[map.pxidx], idx=binunpack(stream,idx,"<H")
+    pixelseries.det[map.pxidx], idx=binunpack(stream,idx,"<H")
+    pixelseries.dt[map.pxidx], idx=binunpack(stream,idx,"<f")
 
     #initialise channel index and result arrays
     j=0 #channel index
@@ -327,7 +339,7 @@ def readpxrecord(config, map):
     map.idx = idx
     map.stream = stream
 
-    return(chan, counts, pxlen, xcoord, ycoord, det, dt)
+    return(chan, counts)
 
 def readspec(config, odir):
     """

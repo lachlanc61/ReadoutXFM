@@ -79,7 +79,10 @@ starttime = time.time()
 
 #if we are parsing the .GeoPIXE file
 if config['FORCEPARSE']:
-    map.parse(config, pixelseries)
+    try:
+        map.parse(config, pixelseries)
+    finally:
+        map.closefiles()
 
 else:   
     map.read(config, odir)
@@ -98,13 +101,12 @@ print(
 f"pixels expected (X*Y): {map.numpx}\n"
 f"pixels found: {pixelseries.npx}\n"
 f"total time: {round(runtime,2)} s\n"
-f"time per pixel: {round((runtime/i),6)} s\n"
+f"time per pixel: {round((runtime/pixelseries.npx),6)} s\n"
 "---------------------------"
 )
 
 #show memory usage    
 utils.varsizes(locals().items())
-
 
 exit()
 
@@ -142,7 +144,13 @@ improving colourmap:
     vectorise channels:     0.004051 s
     pre-init gaussians:     0.002641 s   
     fully vectorised:       0.001886 s
+
 add background fitting:
-    snip:               0.002734 s
-    complex snip:       0.002919 s
+    snip:                   0.002734 s
+    complex snip:           0.002919 s
+
+OO:
+    map+pxseries:           0.001852 s
+
+
 """
