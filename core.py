@@ -59,8 +59,6 @@ map = bitops.Map(config, fi, fo)
 #       pre-creates all arrays for storing data, pixel header values etc
 pixelseries = bitops.PixelSeries(config, map)
 
-exit()
-
 #if we are creating colourmaps, set up colour routine
 if config['DOCOLOURS'] == True: colour.initialise(config, map.energy)
 
@@ -73,31 +71,42 @@ if config['SHORTRUN']:
     print(f"SHORT RUN: ending at {skipratio*100} %")
 
 
-
 print(f"pixels expected: {map.numpx}")
 print("---------------------------")
+
+#BEGIN PARSING
+starttime = time.time() 
 
 #if we are parsing the .GeoPIXE file
 if config['FORCEPARSE']:
     map.parse(config, pixelseries)
 
-
-    #CUT loop through all pixels and return data, corrected data
-    #   and pixel header arrays
-    data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-        = bitops.parsespec(config, stream, idx, headerdict, odir)
 else:   
     map.read(config, odir)
 
+runtime = time.time() - starttime
 
-    #CUT read these from a text file
-    data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-        = bitops.readspec(config, odir)
+pixelseries.exportheader(config, odir)
 
+if config['SAVEPXSPEC']:
+    pixelseries.exportseries(config, odir)
 
+print(
+"---------------------------\n"
+"MAP COMPLETE\n"
+"---------------------------\n"
+f"pixels expected (X*Y): {map.numpx}\n"
+f"pixels found: {pixelseries.npx}\n"
+f"total time: {round(runtime,2)} s\n"
+f"time per pixel: {round((runtime/i),6)} s\n"
+"---------------------------"
+)
 
 #show memory usage    
 utils.varsizes(locals().items())
+
+
+exit()
 
 #manually drop the bytestream from memory
 #   clustering is memory intensive, better to get this removed asap
