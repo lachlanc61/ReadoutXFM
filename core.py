@@ -22,42 +22,7 @@ Parses spectrum-by-pixel maps from IXRF XFM
 """
 
 
-#CLASSES
-class Map:
-    def __init__(self, config, headerdict):
-        #header values
-        self.xres = headerdict['File Header']['Xres']           #map size x
-        self.yres = headerdict['File Header']['Yres']           #map size y
-        self.xdim = headerdict['File Header']['Width (mm)']     #map dimension x
-        self.ydim = headerdict['File Header']['Height (mm)']    #map dimension y
-        self.nchannels = int(headerdict['File Header']['Chan']) #no. channels
-        self.gain = float(headerdict['File Header']['Gain (eV)']/1000) #gain in kV
 
-        #initialise arrays
-        self.chan = np.arange(0,self.nchannels)     #channel series
-        self.energy = self.chan*self.gain           #energy series
-        self.xarray = np.arange(0, self.xdim, self.xdim/self.xres )   #position series x  
-        self.yarray = np.arange(0, self.ydim, self.ydim/self.yres )   #position series y
-            #NB: real positions likely better represented by centres of pixels eg. 0+(xdim/xres), xdim-(xdim/xres) 
-            #       need to ask IXRF how this is handled by Iridium
-
-        #derived vars
-        self.numpx = self.xres*self.yres        #expected number of pixels
-
-class PixelSeries:
-    def __init__(self, config, map):
-        #initialise pixel value arrays
-        self.pxlen=np.zeros(map.numpx,dtype=np.uint16)
-        self.xidx=np.zeros(map.numpx,dtype=np.uint16)
-        self.yidx=np.zeros(map.numpx,dtype=np.uint16)
-        self.det=np.zeros(map.numpx,dtype=np.uint16)
-        self.dt=np.zeros(map.numpx,dtype=np.uint16)
-
-        #create colour-associated attrs even if not doing colours
-        self.rvals=np.zeros(map.numpx)
-        self.gvals=np.zeros(map.numpx)
-        self.bvals=np.zeros(map.numpx)
-        self.totalcounts=np.zeros(map.numpx)
 
 #-----------------------------------
 #vars
@@ -83,51 +48,53 @@ noisecorrect=True                   #apply adjustment to SNIP to fit noisy pixel
 #MAIN START
 #-----------------------------------
 
-#assign input file object for reading
-infile = open(fi, mode='rb') # rb = read binary
-outfile = open(fo, mode='wb')   #wb = write binary
 
-#generate initial bytestream
-stream = infile.read()         
-#stream = infile.read(config['chunksize'])   
-streamlen=len(stream)
+#initialise map
+#   parses header into map.headerdict
+#       puts pointer (map.idx) at start of first pixel record
+map = bitops.Map(config, fi, fo)
 
-idx, headerdict = bitops.readgpxheader(stream)
+#initialise the spectrum-by-pixel container
+#       WARNING: large memory spike here if map is big
+#       pre-creates all arrays for storing data, pixel header values etc
+pixelseries = bitops.PixelSeries(config, map)
 
-#get map dimensions from header
-try:
-    mapx=headerdict['File Header']['Xres']  #map dimension x
-    mapy=headerdict['File Header']['Yres']  #map dimension y
-    totalpx=mapx*mapy   
-    chan=np.arange(0,headerdict['File Header']['Chan'])      #channels
-    energy=chan*headerdict['File Header']['Gain (eV)']/1000  #energy list
-except:
-    raise ValueError("FATAL: failure reading values from header")
+exit()
 
 #if we are creating colourmaps, set up colour routine
-if config['DOCOLOURS'] == True: colour.initialise(config, energy)
+if config['DOCOLOURS'] == True: colour.initialise(config, map.energy)
 
 #   if we are skipping some of the file
 #       assign the ratio and adjust totalpx
 if config['SHORTRUN']:
     skipratio=config['shortpct']/100
-    trunc_y=int(np.ceil(mapy*skipratio))
-    totalpx=mapx*trunc_y
+    trunc_y=int(np.ceil(map.yres*skipratio))
+    map.numpx=map.xres*trunc_y
     print(f"SHORT RUN: ending at {skipratio*100} %")
 
-print(f"pixels expected: {totalpx}")
+
+
+print(f"pixels expected: {map.numpx}")
 print("---------------------------")
 
 #if we are parsing the .GeoPIXE file
 if config['FORCEPARSE']:
-    #loop through all pixels and return data, corrected data
+    map.parse(config, pixelseries)
+
+
+    #CUT loop through all pixels and return data, corrected data
     #   and pixel header arrays
     data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
         = bitops.parsespec(config, stream, idx, headerdict, odir)
 else:   
-    #read these from a text file
+    map.read(config, odir)
+
+
+    #CUT read these from a text file
     data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
         = bitops.readspec(config, odir)
+
+
 
 #show memory usage    
 utils.varsizes(locals().items())
