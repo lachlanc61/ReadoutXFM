@@ -61,7 +61,7 @@ convfile: "converted.GeoPIXE"
 
 #instrument config
 detid: "A"   #detector ID - not currently used
-nclust: 5       #no of clusters
+nclust: 6       #no of clusters
 
 #figure params (currently not used)
 figx: 20         #cm width of figure

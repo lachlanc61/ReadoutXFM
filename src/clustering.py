@@ -168,8 +168,8 @@ def clustplt(config, embedding, categories, mapx, clusttimes, odir):
         #create the scatterplot for this reducer
         # .T = transpose, rotates x and y
         ax[plotid].scatter(*embed.T, s=10, c=categories[i], cmap=KCMAPS[i], alpha=0.5)
-        for j in np.arange(config['nclust']):
-            print(j,len(np.where(categories[i]==j)[0]))
+#        for j in np.arange(config['nclust']):
+#            print(j,len(np.where(categories[i]==j)[0]))
 
         #add the runtime as text
         ax[plotid].text(

@@ -70,10 +70,6 @@ if config['SHORTRUN']:
     map.numpx=map.xres*trunc_y
     print(f"SHORT RUN: ending at {skipratio*100} %")
 
-
-print(f"pixels expected: {map.numpx}")
-print("---------------------------")
-
 #BEGIN PARSING
 starttime = time.time() 
 
@@ -108,25 +104,19 @@ f"time per pixel: {round((runtime/pixelseries.npx),6)} s\n"
 #show memory usage    
 utils.varsizes(locals().items())
 
-exit()
-
-#manually drop the bytestream from memory
-#   clustering is memory intensive, better to get this removed asap
-del stream
-gc.collect()
+map.closefiles
 
 #perform post-analysis:
 
 #create and show colour map
 if config['DOCOLOURS'] == True:
-    rgbarray=colour.complete(rvals, gvals, bvals, mapx, nrows, odir)
+    rgbarray=colour.complete(pixelseries.rvals, pixelseries.gvals, pixelseries.bvals, map.xres, pixelseries.nrows, odir)
 
 #perform clustering
 if config['DOCLUST']:
-    categories, classavg = clustering.complete(config, data, energy, totalpx, mapx, mapy, odir)
+    categories, classavg = clustering.complete(config, pixelseries.data, map.energy, map.numpx, map.xres, map.yres, odir)
 
-infile.close()
-outfile.close()
+
 
 print("CLEAN EXIT")
 exit()

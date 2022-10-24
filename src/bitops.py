@@ -31,7 +31,10 @@ class Map:
         self.stream = self.infile.read(self.chunksize)   
         self.streamlen=len(self.stream)
 
-        self.idx=0
+        #pointers
+        self.idx=0      #byte pointer
+        self.pxidx=0    #pixel pointer
+        self.rowidx=0   #row pointer
         self.chunkidx = self.idx
 
         self.idx, self.headerdict = readgpxheader(self)
@@ -68,19 +71,10 @@ class Map:
         print(f"pixels expected: {self.numpx}")
         print("---------------------------")
 
-        self.pxidx=0    #pixel counter
-        self.rowidx=0 #row counter
-
         #loop through pixels
         #while self.fullidx < self.fullsize:
         #while self.idx < self.streamlen:
         while True:
-            #print pixel index every row px
-            if self.pxidx % self.xres == 0: 
-                self.fullidx=self.chunkidx+self.idx
-                print(f"Row {self.rowidx}/{self.yres} at pixel {self.pxidx}, byte {self.fullidx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
-                self.rowidx+=1
-
             #read pixel record into spectrum and header param arrays, 
             # + reassign index at end of read
             outchan, counts = readpxrecord(config, self, pixelseries)
@@ -92,7 +86,7 @@ class Map:
             #warn if recieved channel list is different length to chan array
             if len(outchan) != len(self.chan):
                 print("WARNING: unexpected length of channel list")
-        
+
             #assign counts into data array
             pixelseries.data[self.pxidx,:]=counts
 
@@ -110,17 +104,27 @@ class Map:
             #if pixel index greater than expected no. pixels based on map dimensions
             #   end if we are doing a truncated run
             #   else throw a warning
-            if self.pxidx >= (self.numpx):
+            if self.pxidx == (self.numpx-1):
                 if (config['SHORTRUN'] == True):   #i > totalpx is expected for short run
-                    print("ending at:", self.pxidx, self.idx)
+                    print("short run ending at:", self.pxidx, self.idx)
                     self.idx=self.fullsize+1
                     break 
                 else:
-                    print(f"WARNING: pixel count {self.pxidx} exceeds expected map size {self.numpx}")
+                    print(f"ENDING AT: Row {self.rowidx}/{self.yres} at pixel {self.pxidx}")
                     break
+            elif self.pxidx > (self.numpx-1):
+                print(f"WARNING: pixel count {self.pxidx} exceeds expected length: {self.numpx-1}")
+                break
+
+            #print pixel index every row px
+            #incrementing is skipped on final px
+            if self.pxidx % self.xres == (self.xres-1): 
+                self.fullidx=self.chunkidx+self.idx
+                print(f"Row {self.rowidx}/{self.yres} at pixel {self.pxidx}, byte {self.fullidx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
+                self.rowidx+=1
             self.pxidx+=1    #next pixel
         
-        #store pixels and rows read successfully
+        #store no. pixels and rows read successfully
         pixelseries.npx=self.pxidx+1
         pixelseries.nrows=self.rowidx+1 
 
@@ -173,7 +177,6 @@ class PixelSeries:
         self.nrows=0
 
     def exportheader(self, config, odir):
-
         np.savetxt(os.path.join(odir, "pxlen.txt"), self.pxlen, fmt='%i')
         np.savetxt(os.path.join(odir, "xidx.txt"), self.xidx, fmt='%i')
         np.savetxt(os.path.join(odir, "yidx.txt"), self.yidx, fmt='%i')
@@ -329,8 +332,6 @@ def readpxrecord(config, map, pixelseries):
     Read binary as chunks
     https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
     """
-    
-    pxstart=map.idx
 
 #   check for pixel start flag "DP" at first position after header:
     #   unpack first two bytes after header as char
