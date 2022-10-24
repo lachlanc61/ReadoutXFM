@@ -16,7 +16,6 @@ CHARENCODE: 'utf-8'
 
 DOCOLOURS: True   #run colourmap1
 DOCLUST: True     #run clustering
-DOWRITE: True     #write out
 
 SEPSUMSPEC: True #sum class spectra
 SAVEPXSPEC: True #save pixel spectra
@@ -40,6 +39,15 @@ FORCEPARSE: True     #always parse datafile
 FORCERED: True       #always recalc dimensionality reduction
 FORCEKMEANS: True    #always recalc kmeans 
 
+
+#WRITING
+WRITEONLY: True   #just write, do not parse
+DOWRITE: True
+writestartx: 0
+writestarty: 0
+writeendx: 20
+writeendy: 20
+
 #-----------------------------------
 #VARIABLES
 #-----------------------------------
@@ -47,15 +55,17 @@ FORCEKMEANS: True    #always recalc kmeans
 wdirname: 'data'     #working directory relative to script
 odirname: 'out'      #output directory relative to script
 
-chunksize: 1048576
-  #1,048,576 = 100 Mb
-  #1073741824 = 1 Gb
+#chunksize: 1048576   #100 Mb
+chunksize: 1073741824 #1 Gb
 
 #infile: "geo_nfpy11.GeoPIXE"
 #infile: "geo_ln_chle.GeoPIXE"
 #infile: "geo_dwb12-2.GeoPIXE"
-infile:  "geo2.GeoPIXE"    #assign input file
 #infile: "concrete.GeoPIXE"
+#infile:  "converted.GeoPIXE"
+
+infile:  "geo2.GeoPIXE"    #assign input file
+
 outfile: "pxspec"
 convfile: "converted.GeoPIXE"
 

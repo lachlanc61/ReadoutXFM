@@ -37,8 +37,8 @@ class Map:
         self.rowidx=0   #row pointer
         self.chunkidx = self.idx
 
+        #read the JSON header and move pointer to start of first px record
         self.idx, self.headerdict = readgpxheader(self)
-
         
         #try to assign values from header
         try:
@@ -61,6 +61,9 @@ class Map:
 
         #derived vars
         self.numpx = self.xres*self.yres        #expected number of pixels
+
+        if config['DOWRITE']:
+            self.outfile.write(self.stream[0:self.idx])
 
     def parse(self, config, pixelseries):
         """
@@ -266,6 +269,8 @@ def readgpxheader(map):
 
     streamlen=len(map.stream)
     print(f"filesize: {streamlen} (bytes)")
+    #if beginning of file
+    #   read header length from first bytes as <uint16
     if map.idx == 0:
         headerlen=binunpack(map,"<H")
     else:
@@ -333,6 +338,7 @@ def readpxrecord(config, map, pixelseries):
     https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
     """
 
+    pxstart=map.idx
 #   check for pixel start flag "DP" at first position after header:
     #   unpack first two bytes after header as char
     pxflag=struct.unpack("cc", map.stream[map.idx:map.idx+2])[:]
@@ -362,12 +368,25 @@ def readpxrecord(config, map, pixelseries):
     #       4 = no. bytes in each x,y pair
     #         = 2x2 bytes each 
 
-    #iterate through channel/count pairs 
-    #   until byte index passes pxlen
-    while j*config['BYTESPERCHAN'] < pxlen-config['PXHEADERLEN']:
-        chan[j]=binunpack(map,"<H")
-        counts[j]=binunpack(map,"<H")
-        j+=1    #next channel
+    #if writing and coordinates within subregion specified in config
+    if (config['DOWRITE'] and
+            xcoord >= config['writestartx'] and xcoord < config['writeendx'] and
+            ycoord >= config['writestarty'] and ycoord < config['writeendy']
+        ):
+            #export this pixel
+            map.outfile.write(map.stream[pxstart:pxstart+pxlen])
+
+    if config['WRITEONLY']:
+        #if writing only, push pointer forward to next pixel record
+        #   (ie. increase by pxlen, backtrack by fixed px header length)
+        map.idx=pxstart+pxlen
+    else:
+        #iterate through channel/count pairs 
+        #   until byte index passes pxlen
+        while j*config['BYTESPERCHAN'] < pxlen-config['PXHEADERLEN']:
+            chan[j]=binunpack(map,"<H")
+            counts[j]=binunpack(map,"<H")
+            j+=1    #next channel
 
     #assign object attrs from temp vars
     pixelseries.pxlen[map.pxidx]=pxlen

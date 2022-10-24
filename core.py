@@ -21,9 +21,6 @@ Parses spectrum-by-pixel maps from IXRF XFM
 
 """
 
-
-
-
 #-----------------------------------
 #vars
 #-----------------------------------
@@ -34,6 +31,11 @@ CONFIG_FILE='config.yaml'
 #-----------------------------------
 
 config=utils.readcfg(CONFIG_FILE)
+
+if config['WRITEONLY']:
+    config['DOCOLOURS']=False
+    config['DOCLUST']=False
+    config['DOBG']=False
 
 #initialise read file and all directories relative to current script
 script, spath, wdir, odir = utils.initdirs(config)
@@ -48,15 +50,14 @@ noisecorrect=True                   #apply adjustment to SNIP to fit noisy pixel
 #MAIN START
 #-----------------------------------
 
-
-#initialise map
+#initialise map object
 #   parses header into map.headerdict
-#       puts pointer (map.idx) at start of first pixel record
+#   places pointer (map.idx) at start of first pixel record
 map = bitops.Map(config, fi, fo)
 
-#initialise the spectrum-by-pixel container
-#       WARNING: large memory spike here if map is big
+#initialise the spectrum-by-pixel object
 #       pre-creates all arrays for storing data, pixel header values etc
+#       WARNING: big memory spike here if map is large
 pixelseries = bitops.PixelSeries(config, map)
 
 #if we are creating colourmaps, set up colour routine
@@ -71,24 +72,23 @@ if config['SHORTRUN']:
     print(f"SHORT RUN: ending at {skipratio*100} %")
 
 #BEGIN PARSING
+
+#start a timer
 starttime = time.time() 
 
 #if we are parsing the .GeoPIXE file
+#   begin parsing
 if config['FORCEPARSE']:
     try:
         map.parse(config, pixelseries)
     finally:
         map.closefiles()
-
+#else if we are reading from a pre-parsed csv
+#   do that instead
 else:   
     map.read(config, odir)
 
 runtime = time.time() - starttime
-
-pixelseries.exportheader(config, odir)
-
-if config['SAVEPXSPEC']:
-    pixelseries.exportseries(config, odir)
 
 print(
 "---------------------------\n"
@@ -101,10 +101,18 @@ f"time per pixel: {round((runtime/pixelseries.npx),6)} s\n"
 "---------------------------"
 )
 
+pixelseries.exportheader(config, odir)
+
+if config['WRITEONLY']:
+    print("WRITE COMPLETE")
+    print("---------------------------")
+    exit()
+
+if config['SAVEPXSPEC']:
+    pixelseries.exportseries(config, odir)
+
 #show memory usage    
 utils.varsizes(locals().items())
-
-map.closefiles
 
 #perform post-analysis:
 
@@ -116,9 +124,7 @@ if config['DOCOLOURS'] == True:
 if config['DOCLUST']:
     categories, classavg = clustering.complete(config, pixelseries.data, map.energy, map.numpx, map.xres, map.yres, odir)
 
-
-
-print("CLEAN EXIT")
+print("Processing complete")
 exit()
 
 
