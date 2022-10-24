@@ -64,6 +64,11 @@ class Map:
 
         if config['DOWRITE']:
             self.outfile.write(self.stream[0:self.idx])
+            """
+            NB: need to edit JSON x y and xdim ydim
+                AND change header length uint16 at start
+            """
+
 
     def parse(self, config, pixelseries):
         """
