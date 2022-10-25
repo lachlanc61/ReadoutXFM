@@ -43,10 +43,12 @@ FORCEKMEANS: True    #always recalc kmeans
 #WRITING
 WRITEONLY: True   #just write, do not parse
 DOWRITE: True
-writestartx: 0
-writestarty: 0
-writeendx: 20
-writeendy: 20
+writestartx: 20
+writestarty: 30
+writeendx: 80
+writeendy: 50
+
+
 
 #-----------------------------------
 #VARIABLES

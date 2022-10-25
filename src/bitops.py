@@ -2,6 +2,7 @@ import struct
 import os
 import numpy as np
 import json
+import copy
 
 import src.utils as utils
 import src.colour as colour
@@ -38,7 +39,7 @@ class Map:
         self.chunkidx = self.idx
 
         #read the JSON header and move pointer to start of first px record
-        self.idx, self.headerdict = readgpxheader(self)
+        self.idx, self.headerdict = readgpxheader(config, self)
         
         #try to assign values from header
         try:
@@ -61,14 +62,6 @@ class Map:
 
         #derived vars
         self.numpx = self.xres*self.yres        #expected number of pixels
-
-        if config['DOWRITE']:
-            self.outfile.write(self.stream[0:self.idx])
-            """
-            NB: need to edit JSON x y and xdim ydim
-                AND change header length uint16 at start
-            """
-
 
     def parse(self, config, pixelseries):
         """
@@ -256,7 +249,7 @@ def binunpack(map, sformat):
 
 
 
-def readgpxheader(map):
+def readgpxheader(config, map):
     """
     read header 
         receives stream
@@ -300,15 +293,46 @@ def readgpxheader(map):
         #pull slice of byte stream corresponding to header
         #   bytes[0-2]= headerlen
         #   headerlen doesn't include trailing '\n' '}', so +2
-        headerstream=map.stream[2:headerlen+2]
+        headerraw=map.stream[2:headerlen+2]
+
         #read it as utf8
-        headerstream = headerstream.decode('utf8')
+        headerstream = headerraw.decode('utf-8')
         
         #load into dictionary via json builtin
         headerdict = json.loads(headerstream)
 
-        #create a human-readable dump for debugging
-        headerdump = json.dumps(headerdict, indent=4, sort_keys=False)
+
+        #if we are writing, modify width and height in header and re-print
+        if config['DOWRITE']:
+            newxres=config['writeendx']-config['writestartx']
+            newxdim=newxres*(headerdict["File Header"]["Width (mm)"]/headerdict["File Header"]["Xres"])
+            newyres=config['writeendy']-config['writestarty']
+            newydim=newyres*(headerdict["File Header"]["Height (mm)"]/headerdict["File Header"]["Yres"])
+
+            #create a duplicate via deepcopy separate to original
+            #   need deepcopy because nested lists - copy itself still points to same
+            newheaderdict = copy.deepcopy(headerdict)
+            newheaderdict["File Header"]["Xres"]=newxres
+            newheaderdict["File Header"]["Width (mm)"]=newxdim
+            newheaderdict["File Header"]["Yres"]=newyres
+            newheaderdict["File Header"]["Height (mm)"]=newydim
+
+            #create a printable version  
+            headerdump = json.dumps(newheaderdict, indent='\t', sort_keys=False)
+            #create a byte-encoded version 
+            headerencode = headerdump.encode('utf-8')
+
+            #write the new header length
+            map.outfile.write(struct.pack("<H",len(headerencode)))
+            #write the new header
+            map.outfile.write(headerencode)
+
+            #NB: PROBLEM HERE ----------------
+            # The default JSON has a duplicate entry.
+            # "Detector" appears twice beacuse there are two dets
+            # first is overwritten during json.loads
+            #   .: only one in dict to write to second file
+            #   think we can ignore this, the info is not used, but header is different when rewritten
 
     #print map params
     print(f"header length: {headerlen} (bytes)")
@@ -342,7 +366,7 @@ def readpxrecord(config, map, pixelseries):
     Read binary as chunks
     https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
     """
-
+    pxheaderlen=config['PXHEADERLEN']   #create a local var for readability
     pxstart=map.idx
 #   check for pixel start flag "DP" at first position after header:
     #   unpack first two bytes after header as char
@@ -368,8 +392,8 @@ def readpxrecord(config, map, pixelseries):
 
     #initialise channel index and result arrays
     j=0 #channel index
-    chan=np.zeros(int((pxlen-config['PXHEADERLEN'])/config['BYTESPERCHAN']), dtype=int)
-    counts=np.zeros(int((pxlen-config['PXHEADERLEN'])/config['BYTESPERCHAN']), dtype=int)
+    chan=np.zeros(int((pxlen-pxheaderlen)/config['BYTESPERCHAN']), dtype=int)
+    counts=np.zeros(int((pxlen-pxheaderlen)/config['BYTESPERCHAN']), dtype=int)
     #       4 = no. bytes in each x,y pair
     #         = 2x2 bytes each 
 
@@ -377,18 +401,40 @@ def readpxrecord(config, map, pixelseries):
     if (config['DOWRITE'] and
             xcoord >= config['writestartx'] and xcoord < config['writeendx'] and
             ycoord >= config['writestarty'] and ycoord < config['writeendy']
-        ):
-            #export this pixel
-            map.outfile.write(map.stream[pxstart:pxstart+pxlen])
+    ):
+            #raise an error if chunk breaks pixel header - should be rare
+        if pxstart+pxheaderlen > map.streamlen:
+            raise ValueError("ERROR: pixel header crosses chunk - increase chunk size slightly and repeat")
+
+        #   export the pixel header
+        #save the header as series of bytes
+        #   modifying start coords to new structure (ie. px1 now 0,0)
+
+        outstream=struct.pack("!c",pxflag[0].encode('ascii'))
+        outstream+=struct.pack("!c",pxflag[1].encode('ascii'))
+        #   https://stackoverflow.com/questions/33521838/python-struct-sending-chars
+        outstream+=struct.pack("<I",pxlen)
+        outstream+=struct.pack("<H",xcoord-config['writestartx'])
+        outstream+=struct.pack("<H",ycoord-config['writestarty'])
+        outstream+=struct.pack("<H",det)
+        outstream+=struct.pack("<f",dt)
+
+        map.outfile.write(outstream)
+        map.outfile.write(map.stream[pxstart+pxheaderlen:pxstart+pxlen])
 
     if config['WRITEONLY']:
         #if writing only, push pointer forward to next pixel record
         #   (ie. increase by pxlen, backtrack by fixed px header length)
-        map.idx=pxstart+pxlen
+        if map.streamlen >= pxstart+pxlen:    #provided we are not near the end of a chunk
+            map.idx=pxstart+pxlen
+        else:   #if step would exceed chunk
+            part=map.streamlen-pxstart  #store the length remaining
+            map.next                    #load next
+            map.idx=(pxlen-part)        #push pointer by remainder
     else:
         #iterate through channel/count pairs 
         #   until byte index passes pxlen
-        while j*config['BYTESPERCHAN'] < pxlen-config['PXHEADERLEN']:
+        while j*config['BYTESPERCHAN'] < pxlen-pxheaderlen:
             chan[j]=binunpack(map,"<H")
             counts[j]=binunpack(map,"<H")
             j+=1    #next channel
