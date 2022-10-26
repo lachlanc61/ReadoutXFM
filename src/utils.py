@@ -21,8 +21,19 @@ def initdirs(config):
     script = os.path.realpath(__file__) #_file = current script
     spath=os.path.dirname(script) 
     spath=os.path.dirname(spath)
-    wdir=os.path.join(spath,config['wdirname'])
-    odir=os.path.join(spath,config['odirname'])
+    
+
+    #check if paths are absolute or relative based on leading /
+    if config['wdirname'].startswith('/'):
+        wdir=config['wdirname']
+    else:
+        wdir=os.path.join(spath,config['wdirname'])
+    
+    if config['odirname'].startswith('/'):
+        odir=config['odirname']
+    else:
+        odir=os.path.join(spath,config['odirname'])
+
     print(
         "---------------------------\n"
         "PATHS\n"

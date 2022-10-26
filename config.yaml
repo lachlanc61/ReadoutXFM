@@ -41,7 +41,7 @@ FORCEKMEANS: True    #always recalc kmeans
 
 
 #WRITING
-WRITEONLY: True   #just write, do not parse
+WRITEONLY: False   #just write, do not parse
 DOWRITE: True
 writestartx: 20
 writestarty: 30
@@ -64,7 +64,8 @@ chunksize: 1073741824 #1 Gb
 #infile: "concrete.GeoPIXE"
 #infile:  "converted.GeoPIXE"
 
-infile:  "geo2.GeoPIXE"    #assign input file
+#infile:  "geo2.GeoPIXE"    #assign input file
+infile: "ts2.GeoPIXE"
 
 outfile: "pxspec"
 convfile: "converted.GeoPIXE"
