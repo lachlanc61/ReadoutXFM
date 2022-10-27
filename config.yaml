@@ -15,16 +15,16 @@ MBCONV: 1048576 #bytes per Mb
 #-----------------------------------
 #default input file and output directory
 
-infile:  "data/geo2.GeoPIXE"    #assign input file
+infile:  "data/dw_ts2.GeoPIXE"    #assign input file
 #infile: "/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/slides_220712/slides_45um.GeoPIXE"      #input (abs or relative to script)
 outdir: 'out'                 #output directory (abs or relative to script)
 
 #SUBMAP
-SUBMAPONLY: False   #do not create pixelseries, just write submap and exit
+SUBMAPONLY: True   #do not create pixelseries, just write submap and exit
 DOSUBMAP: True    #write a submap
-submap_x1: 0   #coordinates for writing submap
-submap_y1: 0
-submap_x2: 900
+submap_x1: 50   #coordinates for writing submap
+submap_y1: 0  ##BS *-900-1918-*
+submap_x2: 150
 submap_y2: 0
 
 #recalc flags

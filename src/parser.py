@@ -64,6 +64,9 @@ class Map:
         #derived vars
         self.numpx = self.xres*self.yres        #expected number of pixels
 
+        if config['DOSUBMAP']:
+            writegpxheader(config, self)
+
     def parse(self, config, pixelseries):
         """
         parse the pixel records from .GeoPIXE file
@@ -119,11 +122,11 @@ class Map:
                 print(f"WARNING: pixel count {self.pxidx} exceeds expected length: {self.numpx-1}")
                 break
 
-            #print pixel index every row px
+            #print pixel index every row
             #incrementing is skipped on final px
             if self.pxidx % self.xres == (self.xres-1): 
                 self.fullidx=self.chunkidx+self.idx
-                print(f"Row {self.rowidx}/{self.yres} at pixel {self.pxidx}, byte {self.fullidx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
+                print(f"Row {self.rowidx}/{self.yres-1} at pixel {self.pxidx}, byte {self.fullidx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
                 self.rowidx+=1
             self.pxidx+=1    #next pixel
         
@@ -144,13 +147,13 @@ class Map:
         self.stream = self.infile.read(self.chunksize)
 
         if len(self.stream) != self.streamlen:
-            print("WARNING: final chunk")
+            print("NOTE: final chunk")
 
         self.streamlen=len(self.stream)
         self.idx=0
 
         if not self.stream:
-            print("no chunks remaining")
+            print("NOTE: no chunks remaining")
             #exit()
 
     def closefiles(self):
@@ -237,7 +240,7 @@ def readgpxheader(config, map):
         """
         #pull slice of byte stream corresponding to header
         #   bytes[0-2]= headerlen
-        #   headerlen doesn't include trailing '\n' '}', so +2
+        #   doesn't include trailing '\n' '}', so +2
         headerraw=map.stream[2:headerlen+2]
 
         #read it as utf8
@@ -246,39 +249,6 @@ def readgpxheader(config, map):
         #load into dictionary via json builtin
         headerdict = json.loads(headerstream)
 
-
-        #if we are writing, modify width and height in header and re-print
-        if config['DOSUBMAP']:
-            newxres=config['submap_x2']-config['submap_x1']
-            newxdim=newxres*(headerdict["File Header"]["Width (mm)"]/headerdict["File Header"]["Xres"])
-            newyres=config['submap_y2']-config['submap_y1']
-            newydim=newyres*(headerdict["File Header"]["Height (mm)"]/headerdict["File Header"]["Yres"])
-
-            #create a duplicate via deepcopy separate to original
-            #   need deepcopy because nested lists - copy itself still points to same
-            newheaderdict = copy.deepcopy(headerdict)
-            newheaderdict["File Header"]["Xres"]=newxres
-            newheaderdict["File Header"]["Width (mm)"]=newxdim
-            newheaderdict["File Header"]["Yres"]=newyres
-            newheaderdict["File Header"]["Height (mm)"]=newydim
-
-            #create a printable version  
-            headerdump = json.dumps(newheaderdict, indent='\t', sort_keys=False)
-            #create a byte-encoded version 
-            headerencode = headerdump.encode('utf-8')
-
-            #write the new header length
-            map.outfile.write(struct.pack("<H",len(headerencode)))
-            #write the new header
-            map.outfile.write(headerencode)
-
-            #NB: PROBLEM HERE ----------------
-            # The default JSON has a duplicate entry.
-            # "Detector" appears twice beacuse there are two dets
-            # first is overwritten during json.loads
-            #   .: only one in dict to write to second file
-            #   think we can ignore this, the info is not used, but header is different when rewritten
-
     #print map params
     print(f"header length: {headerlen} (bytes)")
 
@@ -286,6 +256,47 @@ def readgpxheader(config, map):
     idx = headerlen+2
 
     return idx, headerdict
+
+def writegpxheader(config, map):
+    #modify width and height in header and re-print
+
+    newxres=config['submap_x2']-config['submap_x1']
+    #if new res larger than original, set to original
+    if newxres > map.xres:
+        newxres = map.xres
+    newxdim=newxres*(map.headerdict["File Header"]["Width (mm)"]/map.headerdict["File Header"]["Xres"])
+
+    newyres=config['submap_y2']-config['submap_y1']
+    #if new res larger than original, set to original
+    if newyres > map.yres:
+        newyres = map.yres
+    newydim=newyres*(map.headerdict["File Header"]["Height (mm)"]/map.headerdict["File Header"]["Yres"])
+
+    #create a duplicate via deepcopy
+    #   need deepcopy because nested lists - normal copy would point to original data still
+    newheaderdict = copy.deepcopy(map.headerdict)
+    newheaderdict["File Header"]["Xres"]=newxres
+    newheaderdict["File Header"]["Width (mm)"]=newxdim
+    newheaderdict["File Header"]["Yres"]=newyres
+    newheaderdict["File Header"]["Height (mm)"]=newydim
+
+    #create a printable version  
+    headerdump = json.dumps(newheaderdict, indent='\t', sort_keys=False)
+    #create a byte-encoded version 
+    headerencode = headerdump.encode('utf-8')
+
+    #write the new header length
+    map.outfile.write(struct.pack("<H",len(headerencode)))
+    #write the new header
+    map.outfile.write(headerencode)
+
+    #NB: PROBLEM HERE ----------------
+    # The default JSON has a duplicate entry.
+    # "Detector" appears twice beacuse there are two dets
+    # first is overwritten during json.loads
+    #   .: only one in dict to write to second file
+    #   think we can ignore this, the info is not used, but header is different when rewritten
+
 
 
 def readpxrecord(config, map, pixelseries):

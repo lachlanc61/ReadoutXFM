@@ -53,12 +53,6 @@ def readargs(config, parser):
         config['submap_x2']=args.coords[2]
         config['submap_y2']=args.coords[3]
 
-        #if x2 or y2 are 0, set to max
-        if args.coords[2] == 0:
-            config['submap_x2']=int(99999)
-        if args.coords[3] == 0:
-            config['submap_y2']=int(99999)
-
         if not config['DOSUBMAP']:
             print("WARNING: submap coordinates set but submap flag False")
 
@@ -71,7 +65,18 @@ def initcfg(config, args):
         config['DOCOLOURS']=False
         config['DOCLUST']=False
         config['DOBG']=False
-        
+
+    if config['DOSUBMAP']:
+        if config['submap_x2'] == 0:
+            config['submap_x2']=int(99999)
+        if config['submap_y2'] == 0:
+            config['submap_y2']=int(99999)
+
+        if (config['submap_x1'] >= config['submap_x2']):
+            raise ValueError("FATAL: x2 nonzero but smaller than x1")
+        if (config['submap_y1'] >= config['submap_y2']):
+            raise ValueError("FATAL: y2 nonzero but smaller than y1")
+            
     script = os.path.realpath(__file__) #_file = current script
     spath=os.path.dirname(script) 
     spath=os.path.dirname(spath)
