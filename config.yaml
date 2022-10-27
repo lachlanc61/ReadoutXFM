@@ -9,7 +9,7 @@ PXFLAG: 'DP'
 NCHAN: 4096
 ESTEP: 0.01
 CHARENCODE: 'utf-8'
-MBCONV: 1048576
+MBCONV: 1048576 #bytes per Mb
 #-----------------------------------
 #USER FLAGS
 #-----------------------------------
@@ -20,7 +20,7 @@ infile:  "data/geo2.GeoPIXE"    #assign input file
 outdir: 'out'                 #output directory (abs or relative to script)
 
 #SUBMAP
-SUBMAPONLY: True   #do not create pixelseries, just write submap and exit
+SUBMAPONLY: False   #do not create pixelseries, just write submap and exit
 DOSUBMAP: True    #write a submap
 submap_x1: 0   #coordinates for writing submap
 submap_y1: 0
@@ -60,7 +60,7 @@ DEBUG2: False    #second-level debug flag (channels)
 #-----------------------------------
 
 
-chunksize: 24857600   #100 Mb
+chunksize: 104857600   #100 Mb
 #chunksize: 1073741824 #1 Gb
 #chunksize: 2147483648  #2 Gb
 

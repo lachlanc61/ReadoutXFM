@@ -7,6 +7,7 @@ import copy
 import src.utils as utils
 import src.colour as colour
 import src.fitting as fitting
+import src.byteops as byteops
 
 #-----------------------------------
 #CLASSES
@@ -25,7 +26,7 @@ class Map:
 
         #get total size of file to parse
         self.fullsize = os.path.getsize(fi)
-        self.chunksize = config['chunksize']
+        self.chunksize = int(config['chunksize'])
 
         #generate initial bytestream
         #self.stream = self.infile.read()         
@@ -137,20 +138,19 @@ class Map:
             = readspec(config, odir)
         """
 
-    def next(self):
-
+    def nextchunk(self):
         self.chunkidx = self.chunkidx + self.idx
 
         self.stream = self.infile.read(self.chunksize)
 
         if len(self.stream) != self.streamlen:
-            print("WARNING: final stream")
+            print("WARNING: final chunk")
 
         self.streamlen=len(self.stream)
         self.idx=0
 
         if not self.stream:
-            print("no stream found")
+            print("no chunks remaining")
             #exit()
 
     def closefiles(self):
@@ -193,66 +193,6 @@ class PixelSeries:
         print(f"saving spectrum-by-pixel to file")
         np.savetxt(os.path.join(odir,  config['outfile'] + ".dat"), self.data, fmt='%i')
 
-#-------------------------------------
-#FUNCTIONS
-#-----------------------------------
-
-def binunpack(map, sformat):
-    """
-    parse binary data via struct.unpack
-    takes:
-        stream of bytes
-        byte index
-        format flag for unpack (currently accepts: <H <f <I )
-    returns:
-        value in desired format (eg. int, float)
-        next byte index
-    """
-
-    if sformat == "<H":
-        nbytes=2
-    elif sformat == "<f":
-        nbytes=4
-    elif sformat == "<I":
-        nbytes=4
-    else:
-        raise ValueError(f"ERROR: {sformat} not recognised by local function binunpack")
-        exit(0)
-
-    #if perfect end
-    #   unpack then flag next chunk
-    if map.idx == (len(map.stream)-nbytes):
-        retval = struct.unpack(sformat, map.stream[map.idx:map.idx+nbytes])[0]
-        map.idx=map.idx+nbytes
-        map.next()
-    #if end mid unpack
-    #   unpack partial, get next chunk, unpack next partial and concat
-    elif map.idx > (len(map.stream)-nbytes):
-        remaining=(len(map.stream)-map.idx)
-        partial1 = map.stream[map.idx:map.idx+remaining]
-        map.idx=map.idx+remaining
-        map.next()
-        partial2 = map.stream[map.idx:map.idx+(nbytes-remaining)]
-        map.idx=map.idx+(nbytes-remaining)
-        #concat partials
-        partial=partial1+partial2
-        #WARNING: DOES NOT WORK YET
-        # aim is to concat bytes, apparently don't behave like strings
-        # need to convert to bytearray or similar
-        # https://stackoverflow.com/questions/28130722/python-bytes-concatenation
-        retval=struct.unpack(sformat, partial)[0]
-
-    #if not at end
-    #   unpack and increment index
-    else:
-        #struct unpack outputs tuple
-        #want int so take first value
-        retval = struct.unpack(sformat, map.stream[map.idx:map.idx+nbytes])[0]
-        map.idx=map.idx+nbytes
-
-    return(retval)
-
-
 
 def readgpxheader(config, map):
     """
@@ -275,7 +215,7 @@ def readgpxheader(config, map):
     #if beginning of file
     #   read header length from first bytes as <uint16
     if map.idx == 0:
-        headerlen=binunpack(map,"<H")
+        headerlen=byteops.binunpack(map,"<H")
     else:
         raise ValueError("FATAL: attempting to read file header from nonzero index")
 
@@ -387,11 +327,11 @@ def readpxrecord(config, map, pixelseries):
     map.idx=map.idx+2   #step over "DP"
 
     #read each header field and step idx to end of field
-    pxlen=binunpack(map,"<I")
-    xcoord=binunpack(map,"<H")
-    ycoord=binunpack(map,"<H")
-    det=binunpack(map,"<H")
-    dt=binunpack(map,"<f")
+    pxlen=byteops.binunpack(map,"<I")
+    xcoord=byteops.binunpack(map,"<H")
+    ycoord=byteops.binunpack(map,"<H")
+    det=byteops.binunpack(map,"<H")
+    dt=byteops.binunpack(map,"<f")
     #   faster to unpack into temp variables vs directly into pbject attrs. not sure why atm
 
     #initialise channel index and result arrays
@@ -433,14 +373,14 @@ def readpxrecord(config, map, pixelseries):
             map.idx=pxstart+pxlen
         else:   #if step would exceed chunk
             part=map.streamlen-pxstart  #store the length remaining
-            map.next()                    #load next
+            map.nextchunk()                    #load next
             map.idx=(pxlen-part)        #push pointer by remainder
     else:
         #iterate through channel/count pairs 
         #   until byte index passes pxlen
         while j*config['BYTESPERCHAN'] < pxlen-pxheaderlen:
-            chan[j]=binunpack(map,"<H")
-            counts[j]=binunpack(map,"<H")
+            chan[j]=byteops.binunpack(map,"<H")
+            counts[j]=byteops.binunpack(map,"<H")
             j+=1    #next channel
 
     #assign object attrs from temp vars

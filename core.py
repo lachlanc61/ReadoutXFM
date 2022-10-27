@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 
 import src.utils as utils
-import src.bitops as bitops
+import src.parser as parser
 import src.colour as colour
 import src.clustering as clustering
 """
@@ -31,9 +31,9 @@ CONFIG_FILE='config.yaml'
 #-----------------------------------
 
 config=utils.readcfg(CONFIG_FILE)
-parser = argparse.ArgumentParser()
+argsparsed = argparse.ArgumentParser()
 
-config, args=utils.readargs(config, parser)
+config, args=utils.readargs(config, argsparsed)
 
 #initialise read file and all directories relative to current script
 
@@ -48,12 +48,12 @@ starttime = time.time()             #init timer
 #initialise map object
 #   parses header into map.headerdict
 #   places pointer (map.idx) at start of first pixel record
-map = bitops.Map(config, fi, fsub)
+map = parser.Map(config, fi, fsub)
 
 #initialise the spectrum-by-pixel object
 #       pre-creates all arrays for storing data, pixel header values etc
 #       WARNING: big memory spike here if map is large
-pixelseries = bitops.PixelSeries(config, map)
+pixelseries = parser.PixelSeries(config, map)
 
 #if we are creating colourmaps, set up colour routine
 if config['DOCOLOURS'] == True: colour.initialise(config, map.energy)
