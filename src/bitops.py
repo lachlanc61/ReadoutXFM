@@ -89,7 +89,8 @@ class Map:
                 print("WARNING: unexpected length of channel list")
 
             #assign counts into data array
-            pixelseries.data[self.pxidx,:]=counts
+            if not config['SUBMAPONLY']:
+                pixelseries.data[self.pxidx,:]=counts
 
             #if we are attempting to fit a background
             #   apply it, and save the corrected spectra
@@ -137,6 +138,7 @@ class Map:
         """
 
     def next(self):
+
         self.chunkidx = self.chunkidx + self.idx
 
         self.stream = self.infile.read(self.chunksize)
@@ -171,8 +173,11 @@ class PixelSeries:
         self.totalcounts=np.zeros(map.numpx)
 
         #initialise whole data containers (WARNING: large)
-        self.data=np.zeros((map.numpx,config['NCHAN']),dtype=np.uint16)
-        if config['DOBG']: self.corrected=np.zeros((map.numpx,config['NCHAN']),dtype=np.uint16)
+        if not config['SUBMAPONLY']: 
+            self.data=np.zeros((map.numpx,config['NCHAN']),dtype=np.uint16)
+            if config['DOBG']: self.corrected=np.zeros((map.numpx,config['NCHAN']),dtype=np.uint16)
+        else:
+            self.data=np.zeros((1024,config['NCHAN']),dtype=np.uint16)
 
         self.npx=0
         self.nrows=0
@@ -211,7 +216,7 @@ def binunpack(map, sformat):
     elif sformat == "<I":
         nbytes=4
     else:
-        print(f"ERROR: {sformat} not recognised by local function binunpack")
+        raise ValueError(f"ERROR: {sformat} not recognised by local function binunpack")
         exit(0)
 
     #if perfect end
@@ -377,8 +382,7 @@ def readpxrecord(config, map, pixelseries):
 
     #   check if string is "DP" - if not, fail
     if pxflag != config['PXFLAG']:
-        print(f"ERROR: pixel flag 'DP' expected but not found at byte {map.idx}")
-        exit()
+       raise ValueError(f"ERROR: pixel flag 'DP' expected but not found at byte {map.idx}")
 
     map.idx=map.idx+2   #step over "DP"
 
@@ -425,11 +429,11 @@ def readpxrecord(config, map, pixelseries):
     if config['SUBMAPONLY']:
         #if writing only, push pointer forward to next pixel record
         #   (ie. increase by pxlen, backtrack by fixed px header length)
-        if map.streamlen >= pxstart+pxlen:    #provided we are not near the end of a chunk
+        if not pxstart+pxlen >= map.streamlen:    #provided we are not near the end of a chunk
             map.idx=pxstart+pxlen
         else:   #if step would exceed chunk
             part=map.streamlen-pxstart  #store the length remaining
-            map.next                    #load next
+            map.next()                    #load next
             map.idx=(pxlen-part)        #push pointer by remainder
     else:
         #iterate through channel/count pairs 

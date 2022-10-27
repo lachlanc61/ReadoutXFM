@@ -40,6 +40,7 @@ def readargs(config, parser):
     if args.subonly:
         config['SUBMAPONLY'] = True
         config['DOSUBMAP'] = True
+        print("EXPORTING SUBMAPS ONLY")
 
     if args.force:
         config['FORCEPARSE'] = True
@@ -60,7 +61,7 @@ def readargs(config, parser):
 
         if not config['DOSUBMAP']:
             print("WARNING: submap coordinates set but submap flag False")
-            
+
     return config, args
 
 
