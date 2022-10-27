@@ -11,6 +11,26 @@ ESTEP: 0.01
 CHARENCODE: 'utf-8'
 
 #-----------------------------------
+#USER FLAGS
+#-----------------------------------
+#default input file and output directory
+infile: "data/ts2.GeoPIXE"      #input (abs or relative to script)
+outdir: 'out'                 #output directory (abs or relative to script)
+
+#SUBMAP
+SUBMAPONLY: False   #do not create pixelseries, just write submap and exit
+DOSUBMAP: True    #write a submap
+submap_x1: 20   #coordinates for writing submap
+submap_y1: 30
+submap_x2: 80
+submap_y2: 50
+
+#recalc flags
+FORCEPARSE: True     #always parse datafile
+FORCERED: True       #always recalc dimensionality reduction
+FORCEKMEANS: True    #always recalc kmeans 
+
+#-----------------------------------
 #FLAGS
 #-----------------------------------
 
@@ -27,33 +47,16 @@ SHORTRUN: False  #stop after first X% of pixels
 shortpct: 20     #% of lines to run in short config
 
 CMAP: 'Set1' #default colourmap for clusters
-MAPX: 256    #default map x dim
-MAPY: 126    #default map y dim
 
 #debug flags
 DEBUG: False     #debug flag (pixels)
 DEBUG2: False    #second-level debug flag (channels)
 
-#recalc flags
-FORCEPARSE: True     #always parse datafile
-FORCERED: True       #always recalc dimensionality reduction
-FORCEKMEANS: True    #always recalc kmeans 
-
-
-#WRITING
-WRITEONLY: False   #just write, do not parse
-DOWRITE: True
-writestartx: 20
-writestarty: 30
-writeendx: 80
-writeendy: 50
 
 #-----------------------------------
 #VARIABLES
 #-----------------------------------
-#workdir and inputfile
-infile: "data/ts2.GeoPIXE"      #working directory relative to script
-odirname: 'out'                 #output directory relative to script
+
 
 #chunksize: 1048576   #100 Mb
 chunksize: 1073741824 #1 Gb
@@ -67,10 +70,10 @@ chunksize: 1073741824 #1 Gb
 #infile:  "geo2.GeoPIXE"    #assign input file
 
 outfile: "pxspec"
-convfile: "converted.GeoPIXE"
+convext: "_sub"
 
 #instrument config
-detid: "A"   #detector ID - not currently used
+detid: 0  #detector ID - not currently used
 nclust: 6       #no of clusters
 
 #figure params (currently not used)

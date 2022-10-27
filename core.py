@@ -33,24 +33,13 @@ CONFIG_FILE='config.yaml'
 config=utils.readcfg(CONFIG_FILE)
 parser = argparse.ArgumentParser()
 
-args=utils.readargs(config, parser)
-
-
-if config['WRITEONLY']:
-    config['DOCOLOURS']=False
-    config['DOCLUST']=False
-    config['DOBG']=False
+config, args=utils.readargs(config, parser)
 
 #initialise read file and all directories relative to current script
-script, spath, wdir, odir = utils.initdirs(config)
 
-fi, fname, fo, oname = utils.initfiles(config, wdir, odir)
+config, fi, fname, fsub, odir = utils.initcfg(config, args)
 
 starttime = time.time()             #init timer
-
-noisecorrect=True                   #apply adjustment to SNIP to fit noisy pixels
-
-exit()
 
 #-----------------------------------
 #MAIN START
@@ -59,7 +48,7 @@ exit()
 #initialise map object
 #   parses header into map.headerdict
 #   places pointer (map.idx) at start of first pixel record
-map = bitops.Map(config, fi, fo)
+map = bitops.Map(config, fi, fsub)
 
 #initialise the spectrum-by-pixel object
 #       pre-creates all arrays for storing data, pixel header values etc
@@ -109,7 +98,7 @@ f"time per pixel: {round((runtime/pixelseries.npx),6)} s\n"
 
 pixelseries.exportheader(config, odir)
 
-if config['WRITEONLY']:
+if config['SUBMAPONLY']:
     print("WRITE COMPLETE")
     print("---------------------------")
     exit()

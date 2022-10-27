@@ -19,30 +19,58 @@ def readcfg(filename):
 
 def readargs(config, parser):
 
-    parser.add_argument("-i", "--input", help="Input file (.GeoPIXE)", type=os.path.abspath)
-    parser.add_argument("-o", "--output", help="Output path", type=os.path.abspath)
+    parser.add_argument("-i", "--infile", help="Input file (.GeoPIXE)", type=os.path.abspath)
+    parser.add_argument("-o", "--outdir", help="Output path", type=os.path.abspath)
     parser.add_argument("-s", "--submap", action='store_true', help="Export submap (.GeoPIXE)")
-    parser.add_argument("-ss", "--onlysub", action='store_true', help="Only export submap")
+    parser.add_argument("-ss", "--subonly", action='store_true', help="Only export submap")
     parser.add_argument("-f", "--force", action='store_true', help="Force recalculation of all pixels/classes")
     parser.add_argument('-c', "--coords", nargs='+', type=int, help="Coordinates for submap as: x1 y1 x2 y2")
 
     args = parser.parse_args()
 
-    if args.input is not None:
-        config['infile'] = args.input
+    if args.infile is not None:
+        config['infile'] = args.infile
+
+    if args.outdir is not None:
+        config['outdir'] = args.outdir
+
+    if args.submap:
+        config['DOSUBMAP'] = True
+
+    if args.subonly:
+        config['SUBMAPONLY'] = True
+        config['DOSUBMAP'] = True
+
+    if args.force:
+        config['FORCEPARSE'] = True
+        config['FORCERED'] = True
+        config['FORCEKMEANS'] = True
+
+    if args.coords is not None:
+        config['submap_x1']=args.coords[0]
+        config['submap_y1']=args.coords[1]
+        config['submap_x2']=args.coords[2]
+        config['submap_y2']=args.coords[3]
+
+        #if x2 or y2 are 0, set to max
+        if args.coords[2] == 0:
+            config['submap_x2']=int(99999)
+        if args.coords[3] == 0:
+            config['submap_y2']=int(99999)
+
+        if not config['DOSUBMAP']:
+            print("WARNING: submap coordinates set but submap flag False")
+            
+    return config, args
 
 
-
-
-
-
-
-
-
-    return args
-
-
-def initdirs(config):
+def initcfg(config, args):
+        
+    if config['SUBMAPONLY']:
+        config['DOCOLOURS']=False
+        config['DOCLUST']=False
+        config['DOBG']=False
+        
     script = os.path.realpath(__file__) #_file = current script
     spath=os.path.dirname(script) 
     spath=os.path.dirname(spath)
@@ -50,53 +78,46 @@ def initdirs(config):
     #check if paths are absolute or relative based on leading /
     if config['infile'].startswith('/'):
         fi=config['infile']
-
     else:
         fi = os.path.join(spath,config['infile'])
-
-    fname = os.path.splitext(os.path.basename(fi))[0]
-    print(f"input file: {fi}")
-
-
 
     if config['outdir'].startswith('/'):
         odir=config['outdir']
     else:
         odir=os.path.join(spath,config['outdir'])
 
+    #extract name of input file
+    fname = os.path.splitext(os.path.basename(fi))[0]
+    print(f"input file: {fi}")
+
     print(
         "---------------------------\n"
         "PATHS\n"
         "---------------------------\n"
-        f"base: {spath}\n"
-        f"data: {wdir}\n"
-        f"output: {odir}\n"
-        "---------------------------"
+        f"local: {spath}\n"
+        f"data: {fi}\n"
+        f"output: {odir}"
     )
 
-    return script, spath, wdir, odir
-
-def initfiles(config, wdir, odir):
-
     #check filetype is recognised - currently only accepts .GeoPIXE
-    if config['FTYPE'] == ".GeoPIXE":
-        fi = os.path.join(wdir,config['infile'])
-        fname = os.path.splitext(os.path.basename(fi))[0]
-        print(f"input file: {fi}")
-    else: 
-        print(f"FATAL: filetype {config['FTYPE']} not recognised")
-        exit()
+    if not config['FTYPE'] == ".GeoPIXE":
+        raise ValueError(f"FATAL: filetype {config['FTYPE']} not recognised")
 
-    if config['DOWRITE']:
-        fo = os.path.join(odir,config['convfile'])
-        oname = os.path.splitext(os.path.basename(fi))[0]
+    if config['DOSUBMAP']:
+        subname=fname+config['convext']
+        fsub = os.path.join(odir,subname+config['FTYPE'])
+
+        if not subname == os.path.splitext(os.path.basename(fsub))[0]:
+            raise ValueError(f"submap name not recognisable")
+
+        print(f"submap: {fsub}")
     else:
-        fo = None
-    
+        fsub = None
+
+    print("---------------------------")
     print("---------------------------")
 
-    return fi, fname, fo, oname
-
+    return config, fi, fname, fsub, odir
 
 def lookfor(x, val):
     difference_array = np.absolute(x-val)

@@ -303,10 +303,10 @@ def readgpxheader(config, map):
 
 
         #if we are writing, modify width and height in header and re-print
-        if config['DOWRITE']:
-            newxres=config['writeendx']-config['writestartx']
+        if config['DOSUBMAP']:
+            newxres=config['submap_x2']-config['submap_x1']
             newxdim=newxres*(headerdict["File Header"]["Width (mm)"]/headerdict["File Header"]["Xres"])
-            newyres=config['writeendy']-config['writestarty']
+            newyres=config['submap_y2']-config['submap_y1']
             newydim=newyres*(headerdict["File Header"]["Height (mm)"]/headerdict["File Header"]["Yres"])
 
             #create a duplicate via deepcopy separate to original
@@ -398,9 +398,9 @@ def readpxrecord(config, map, pixelseries):
     #         = 2x2 bytes each 
 
     #if writing and coordinates within subregion specified in config
-    if (config['DOWRITE'] and
-            xcoord >= config['writestartx'] and xcoord < config['writeendx'] and
-            ycoord >= config['writestarty'] and ycoord < config['writeendy']
+    if (config['DOSUBMAP'] and
+            xcoord >= config['submap_x1'] and xcoord < config['submap_x2'] and
+            ycoord >= config['submap_y1'] and ycoord < config['submap_y2']
     ):
             #raise an error if chunk breaks pixel header - should be rare
         if pxstart+pxheaderlen > map.streamlen:
@@ -414,15 +414,15 @@ def readpxrecord(config, map, pixelseries):
         outstream+=struct.pack("!c",pxflag[1].encode('ascii'))
         #   https://stackoverflow.com/questions/33521838/python-struct-sending-chars
         outstream+=struct.pack("<I",pxlen)
-        outstream+=struct.pack("<H",xcoord-config['writestartx'])
-        outstream+=struct.pack("<H",ycoord-config['writestarty'])
+        outstream+=struct.pack("<H",xcoord-config['submap_x1'])
+        outstream+=struct.pack("<H",ycoord-config['submap_y1'])
         outstream+=struct.pack("<H",det)
         outstream+=struct.pack("<f",dt)
 
         map.outfile.write(outstream)
         map.outfile.write(map.stream[pxstart+pxheaderlen:pxstart+pxlen])
 
-    if config['WRITEONLY']:
+    if config['SUBMAPONLY']:
         #if writing only, push pointer forward to next pixel record
         #   (ie. increase by pxlen, backtrack by fixed px header length)
         if map.streamlen >= pxstart+pxlen:    #provided we are not near the end of a chunk
