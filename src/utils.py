@@ -17,22 +17,52 @@ def readcfg(filename):
         with open(yamlfile, "r") as f:
                 return yaml.safe_load(f)
 
+def readargs(config, parser):
+
+    parser.add_argument("-i", "--input", help="Input file (.GeoPIXE)", type=os.path.abspath)
+    parser.add_argument("-o", "--output", help="Output path", type=os.path.abspath)
+    parser.add_argument("-s", "--submap", action='store_true', help="Export submap (.GeoPIXE)")
+    parser.add_argument("-ss", "--onlysub", action='store_true', help="Only export submap")
+    parser.add_argument("-f", "--force", action='store_true', help="Force recalculation of all pixels/classes")
+    parser.add_argument('-c', "--coords", nargs='+', type=int, help="Coordinates for submap as: x1 y1 x2 y2")
+
+    args = parser.parse_args()
+
+    if args.input is not None:
+        config['infile'] = args.input
+
+
+
+
+
+
+
+
+
+    return args
+
+
 def initdirs(config):
     script = os.path.realpath(__file__) #_file = current script
     spath=os.path.dirname(script) 
     spath=os.path.dirname(spath)
     
-
     #check if paths are absolute or relative based on leading /
-    if config['wdirname'].startswith('/'):
-        wdir=config['wdirname']
+    if config['infile'].startswith('/'):
+        fi=config['infile']
+
     else:
-        wdir=os.path.join(spath,config['wdirname'])
-    
-    if config['odirname'].startswith('/'):
-        odir=config['odirname']
+        fi = os.path.join(spath,config['infile'])
+
+    fname = os.path.splitext(os.path.basename(fi))[0]
+    print(f"input file: {fi}")
+
+
+
+    if config['outdir'].startswith('/'):
+        odir=config['outdir']
     else:
-        odir=os.path.join(spath,config['odirname'])
+        odir=os.path.join(spath,config['outdir'])
 
     print(
         "---------------------------\n"

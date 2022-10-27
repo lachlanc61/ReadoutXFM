@@ -52,8 +52,8 @@ writeendy: 50
 #VARIABLES
 #-----------------------------------
 #workdir and inputfile
-wdirname: 'data'     #working directory relative to script
-odirname: 'out'      #output directory relative to script
+infile: "data/ts2.GeoPIXE"      #working directory relative to script
+odirname: 'out'                 #output directory relative to script
 
 #chunksize: 1048576   #100 Mb
 chunksize: 1073741824 #1 Gb
@@ -65,7 +65,6 @@ chunksize: 1073741824 #1 Gb
 #infile:  "converted.GeoPIXE"
 
 #infile:  "geo2.GeoPIXE"    #assign input file
-infile: "ts2.GeoPIXE"
 
 outfile: "pxspec"
 convfile: "converted.GeoPIXE"
@@ -93,3 +92,4 @@ SDS: 9           #standard deviations
 RGBLOG: False     #map RGB as log of intensity
 NCOLS: 5         #no. colours
 #these should all be refactored into config, really
+

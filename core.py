@@ -2,7 +2,7 @@ import os
 import time
 import gc
 import time
-
+import argparse
 import numpy as np
 
 import src.utils as utils
@@ -31,6 +31,10 @@ CONFIG_FILE='config.yaml'
 #-----------------------------------
 
 config=utils.readcfg(CONFIG_FILE)
+parser = argparse.ArgumentParser()
+
+args=utils.readargs(config, parser)
+
 
 if config['WRITEONLY']:
     config['DOCOLOURS']=False
@@ -45,6 +49,8 @@ fi, fname, fo, oname = utils.initfiles(config, wdir, odir)
 starttime = time.time()             #init timer
 
 noisecorrect=True                   #apply adjustment to SNIP to fit noisy pixels
+
+exit()
 
 #-----------------------------------
 #MAIN START
