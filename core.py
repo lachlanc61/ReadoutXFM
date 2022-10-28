@@ -78,7 +78,7 @@ if config['FORCEPARSE']:
         map.parse(config, pixelseries)
     finally:
         map.closefiles()
-#else if we are reading from a pre-parsed csv
+#else we are reading from a pre-parsed csv
 #   do that instead
 else:   
     map.read(config, odir)
@@ -136,7 +136,7 @@ improving colourmap:
     pre-init gaussians:     0.002641 s   
     fully vectorised:       0.001886 s
 
-add background fitting:
+w/ background fitting:
     snip:                   0.002734 s
     complex snip:           0.002919 s
 

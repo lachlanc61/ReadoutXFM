@@ -378,14 +378,17 @@ def readpxrecord(config, map, pixelseries):
         map.outfile.write(map.stream[pxstart+pxheaderlen:pxstart+pxlen])
 
     if config['SUBMAPONLY']:
-        #if writing only, push pointer forward to next pixel record
-        #   (ie. increase by pxlen, backtrack by fixed px header length)
-        if not pxstart+pxlen >= map.streamlen:    #provided we are not near the end of a chunk
+    #if writing only, push pointer forward to next pixel record
+    #   (ie. increase by pxlen, backtrack by fixed px header length)
+
+        #if we have enough remaining in the chunk, proceed
+        if not pxstart+pxlen >= map.streamlen:    
             map.idx=pxstart+pxlen
         else:   #if step would exceed chunk
             part=map.streamlen-pxstart  #store the length remaining
             map.nextchunk()                    #load next
             map.idx=(pxlen-part)        #push pointer by remainder
+    #if we are unpacking the spectra fully
     else:
         #iterate through channel/count pairs 
         #   until byte index passes pxlen

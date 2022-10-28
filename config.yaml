@@ -1,30 +1,18 @@
 #-----------------------------------
-#HARDCODED CONSTANTS (eg. filetype properties)
-#-----------------------------------
-FTYPE: ".GeoPIXE"    #valid: ".GeoPIXE"
-
-PXHEADERLEN: 16  #pixel header size
-BYTESPERCHAN: 4
-PXFLAG: 'DP'
-NCHAN: 4096
-ESTEP: 0.01
-CHARENCODE: 'utf-8'
-MBCONV: 1048576 #bytes per Mb
-#-----------------------------------
 #USER FLAGS
 #-----------------------------------
 #default input file and output directory
 
-infile:  "data/dw_ts2.GeoPIXE"    #assign input file
-#infile: "/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/slides_220712/slides_45um.GeoPIXE"      #input (abs or relative to script)
-outdir: 'out'                 #output directory (abs or relative to script)
+#infile:  "data/dw_ts2.GeoPIXE"    #assign input file
+infile: "/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/tamf_9_32.GeoPIXE"      #input (abs or relative to script)
+outdir: '/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/TAMF32_split/'                 #output directory (abs or relative to script)
 
 #SUBMAP
 SUBMAPONLY: True   #do not create pixelseries, just write submap and exit
 DOSUBMAP: True    #write a submap
-submap_x1: 50   #coordinates for writing submap
+submap_x1: 1037   #coordinates for writing submap
 submap_y1: 0  ##BS *-900-1918-*
-submap_x2: 150
+submap_x2: 0
 submap_y2: 0
 
 #recalc flags
@@ -59,10 +47,10 @@ DEBUG2: False    #second-level debug flag (channels)
 #VARIABLES
 #-----------------------------------
 
-
-chunksize: 104857600   #100 Mb
+#chunksize: 104857600   #100 Mb
 #chunksize: 1073741824 #1 Gb
 #chunksize: 2147483648  #2 Gb
+chunksize: 10737418240
 
 #infile: "geo_nfpy11.GeoPIXE"
 #infile: "geo_ln_chle.GeoPIXE"
@@ -99,3 +87,15 @@ RGBLOG: False     #map RGB as log of intensity
 NCOLS: 5         #no. colours
 #these should all be refactored into config, really
 
+#-----------------------------------
+#HARDCODED CONSTANTS (eg. filetype properties)
+#-----------------------------------
+FTYPE: ".GeoPIXE"    #valid: ".GeoPIXE"
+
+PXHEADERLEN: 16  #pixel header size
+BYTESPERCHAN: 4
+PXFLAG: 'DP'
+NCHAN: 4096
+ESTEP: 0.01
+CHARENCODE: 'utf-8'
+MBCONV: 1048576 #bytes per Mb
