@@ -13,6 +13,7 @@ import src.byteops as byteops
 #CLASSES
 #-----------------------------------
 
+
 #CLASSES
 class Map:
     def __init__(self, config, fi, fo):
@@ -66,6 +67,14 @@ class Map:
 
         if config['DOSUBMAP']:
             writegpxheader(config, self)
+
+        self.headstruct=struct.Struct("<ccI3Hf")
+        self.pxheaderlen=config['PXHEADERLEN'] 
+        
+        fmt= "<%dH" % (config['NCHAN'] * 2)
+        self.chanstruct=struct.Struct(fmt)
+
+        
 
     def parse(self, config, pixelseries):
         """
@@ -322,33 +331,30 @@ def readpxrecord(config, map, pixelseries):
     Read binary as chunks
     https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
     """
-    pxheaderlen=config['PXHEADERLEN']   #create a local var for readability
     pxstart=map.idx
-#   check for pixel start flag "DP" at first position after header:
-    #   unpack first two bytes after header as char
-    pxflag=struct.unpack("cc", map.stream[map.idx:map.idx+2])[:]
 
-    #   use join to merge into string
-    pxflag="".join([pxflag[0].decode(config['CHARENCODE']),pxflag[1].decode(config['CHARENCODE'])])
+    #raise an error if chunk breaks pixel header - should be rare
+    if pxstart+map.pxheaderlen > map.streamlen:
+        raise ValueError("ERROR: pixel header crosses chunk - increase chunk size slightly and repeat")
 
-    #   check if string is "DP" - if not, fail
-    if pxflag != config['PXFLAG']:
-       raise ValueError(f"ERROR: pixel flag 'DP' expected but not found at byte {map.idx}")
+    headstream=map.stream[map.idx:map.idx+map.pxheaderlen]
 
-    map.idx=map.idx+2   #step over "DP"
-
-    #read each header field and step idx to end of field
-    pxlen=byteops.binunpack(map,"<I")
-    xcoord=byteops.binunpack(map,"<H")
-    ycoord=byteops.binunpack(map,"<H")
-    det=byteops.binunpack(map,"<H")
-    dt=byteops.binunpack(map,"<f")
+    #unpack the header
     #   faster to unpack into temp variables vs directly into pbject attrs. not sure why atm
+    pxflag0, pxflag1, pxlen, xcoord, ycoord, det, dt = map.headstruct.unpack(headstream)
+
+    pxflag=pxflag0+pxflag1
+    #   check for pixel start flag "DP":
+    if not (pxflag == b'DP'):
+        raise ValueError(f"ERROR: pixel flag 'DP' expected but not found at byte {pxstart}")
+
+    #step pointer to end of header
+    map.idx+=map.pxheaderlen
 
     #initialise channel index and result arrays
     j=0 #channel index
-    chan=np.zeros(int((pxlen-pxheaderlen)/config['BYTESPERCHAN']), dtype=int)
-    counts=np.zeros(int((pxlen-pxheaderlen)/config['BYTESPERCHAN']), dtype=int)
+    chan=np.zeros(int((pxlen-map.pxheaderlen)/config['BYTESPERCHAN']), dtype=int)
+    counts=np.zeros(int((pxlen-map.pxheaderlen)/config['BYTESPERCHAN']), dtype=int)
     #       4 = no. bytes in each x,y pair
     #         = 2x2 bytes each 
 
@@ -357,25 +363,14 @@ def readpxrecord(config, map, pixelseries):
             xcoord >= config['submap_x1'] and xcoord < config['submap_x2'] and
             ycoord >= config['submap_y1'] and ycoord < config['submap_y2']
     ):
-            #raise an error if chunk breaks pixel header - should be rare
-        if pxstart+pxheaderlen > map.streamlen:
-            raise ValueError("ERROR: pixel header crosses chunk - increase chunk size slightly and repeat")
 
-        #   export the pixel header
-        #save the header as series of bytes
-        #   modifying start coords to new structure (ie. px1 now 0,0)
-
-        outstream=struct.pack("!c",pxflag[0].encode('ascii'))
-        outstream+=struct.pack("!c",pxflag[1].encode('ascii'))
-        #   https://stackoverflow.com/questions/33521838/python-struct-sending-chars
-        outstream+=struct.pack("<I",pxlen)
-        outstream+=struct.pack("<H",xcoord-config['submap_x1'])
-        outstream+=struct.pack("<H",ycoord-config['submap_y1'])
-        outstream+=struct.pack("<H",det)
-        outstream+=struct.pack("<f",dt)
-
+        #write the header with x/y coords adjusted
+        outstream=map.headstruct.pack(pxflag0, pxflag1, pxlen, xcoord-config['submap_x1'], \
+                                        ycoord-config['submap_y1'], det, dt)
         map.outfile.write(outstream)
-        map.outfile.write(map.stream[pxstart+pxheaderlen:pxstart+pxlen])
+
+        # write the channel data as-is
+        map.outfile.write(map.stream[pxstart+map.pxheaderlen:pxstart+pxlen])
 
     if config['SUBMAPONLY']:
     #if writing only, push pointer forward to next pixel record
@@ -392,11 +387,17 @@ def readpxrecord(config, map, pixelseries):
     else:
         #iterate through channel/count pairs 
         #   until byte index passes pxlen
-        while j*config['BYTESPERCHAN'] < pxlen-pxheaderlen:
+        """
+        while j*config['BYTESPERCHAN'] < pxlen-map.pxheaderlen:
             chan[j]=byteops.binunpack(map,"<H")
             counts[j]=byteops.binunpack(map,"<H")
             j+=1    #next channel
-
+        """
+        chandata=map.chanstruct.unpack(map.stream[map.idx:map.idx+(config['NCHAN']*4)])
+        chan=chandata[::2]
+        chan=chan[:int(pxlen/4)]
+        counts=counts[1::2]
+        counts=counts[:int(pxlen/4)]
     #assign object attrs from temp vars
     pixelseries.pxlen[map.pxidx]=pxlen
     pixelseries.xidx[map.pxidx]=xcoord

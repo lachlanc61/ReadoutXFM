@@ -3,16 +3,17 @@
 #-----------------------------------
 #default input file and output directory
 
-#infile:  "data/dw_ts2.GeoPIXE"    #assign input file
-infile: "/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/tamf_9_32.GeoPIXE"      #input (abs or relative to script)
-outdir: '/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/TAMF32_split/'                 #output directory (abs or relative to script)
+infile:  "data/geo2.GeoPIXE"   #assign input file
+outdir: "out/"
+#infile: "/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/tamf_9_32.GeoPIXE"      #input (abs or relative to script)
+#outdir: '/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/TAMF32_split/'                 #output directory (abs or relative to script)
 
 #SUBMAP
-SUBMAPONLY: True   #do not create pixelseries, just write submap and exit
+SUBMAPONLY: False   #do not create pixelseries, just write submap and exit
 DOSUBMAP: True    #write a submap
-submap_x1: 1037   #coordinates for writing submap
+submap_x1: 50   #coordinates for writing submap
 submap_y1: 0  ##BS *-900-1918-*
-submap_x2: 0
+submap_x2: 100
 submap_y2: 0
 
 #recalc flags
