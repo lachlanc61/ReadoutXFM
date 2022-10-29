@@ -9,8 +9,8 @@ outdir: "out/"
 #outdir: '/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/TAMF32_split/'                 #output directory (abs or relative to script)
 
 #SUBMAP
-SUBMAPONLY: False   #do not create pixelseries, just write submap and exit
-DOSUBMAP: True    #write a submap
+PARSEMAP: True   #do not create pixelseries, just write submap and exit
+WRITESUBMAP: True    #write a submap
 submap_x1: 50   #coordinates for writing submap
 submap_y1: 0  ##BS *-900-1918-*
 submap_x2: 100
@@ -94,6 +94,7 @@ NCOLS: 5         #no. colours
 FTYPE: ".GeoPIXE"    #valid: ".GeoPIXE"
 
 PXHEADERLEN: 16  #pixel header size
+PXHEADERMIN: 6
 BYTESPERCHAN: 4
 PXFLAG: 'DP'
 NCHAN: 4096

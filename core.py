@@ -9,6 +9,7 @@ import src.utils as utils
 import src.parser as parser
 import src.colour as colour
 import src.clustering as clustering
+import src.obj as obj
 """
 Parses spectrum-by-pixel maps from IXRF XFM
 
@@ -48,7 +49,7 @@ starttime = time.time()             #init timer
 #initialise map object
 #   parses header into map.headerdict
 #   places pointer (map.idx) at start of first pixel record
-map = parser.Map(config, fi, fsub)
+xfmap = obj.Xfmap(config, fi, fsub)
 
 #initialise the spectrum-by-pixel object
 #       pre-creates all arrays for storing data, pixel header values etc
