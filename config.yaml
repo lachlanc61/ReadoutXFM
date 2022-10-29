@@ -25,11 +25,11 @@ FORCEKMEANS: True    #always recalc kmeans
 #FLAGS
 #-----------------------------------
 
-DOCOLOURS: True   #run colourmap1
-DOCLUST: True     #run clustering
+DOCOLOURS: False   #run colourmap1
+DOCLUST: False     #run clustering
 
-SEPSUMSPEC: True #sum class spectra
-SAVEPXSPEC: True #save pixel spectra
+SEPSUMSPEC: False #sum class spectra
+SAVEPXSPEC: False #save pixel spectra
 
 DOBG: False      #apply background fitting
 LOWBGADJUST: False    #tweak background for low signal data

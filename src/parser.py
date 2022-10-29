@@ -71,8 +71,7 @@ class Map:
         self.headstruct=struct.Struct("<ccI3Hf")
         self.pxheaderlen=config['PXHEADERLEN'] 
         
-        fmt= "<%dH" % (config['NCHAN'] * 2)
-        self.chanstruct=struct.Struct(fmt)
+
 
         
 
@@ -131,7 +130,7 @@ class Map:
                 print(f"WARNING: pixel count {self.pxidx} exceeds expected length: {self.numpx-1}")
                 break
 
-            #print pixel index every row
+            #print pixel index at end of every row
             #incrementing is skipped on final px
             if self.pxidx % self.xres == (self.xres-1): 
                 self.fullidx=self.chunkidx+self.idx
@@ -393,10 +392,15 @@ def readpxrecord(config, map, pixelseries):
             counts[j]=byteops.binunpack(map,"<H")
             j+=1    #next channel
         """
-        chandata=map.chanstruct.unpack(map.stream[map.idx:map.idx+(config['NCHAN']*4)])
+
+
+        fmt= "<%dH" % ((pxlen-map.pxheaderlen) // 2)
+        chanstruct=struct.Struct(fmt)
+
+        chandata=chanstruct.unpack(map.stream[pxstart+map.pxheaderlen:pxstart+pxlen])
         chan=chandata[::2]
         chan=chan[:int(pxlen/4)]
-        counts=counts[1::2]
+        counts=chandata[1::2]
         counts=counts[:int(pxlen/4)]
     #assign object attrs from temp vars
     pixelseries.pxlen[map.pxidx]=pxlen
@@ -405,6 +409,7 @@ def readpxrecord(config, map, pixelseries):
     pixelseries.det[map.pxidx]=det
     pixelseries.dt[map.pxidx]=dt
 
+    map.idx=pxstart+pxlen
     return(chan, counts)
 
 def readspec(config, odir):
