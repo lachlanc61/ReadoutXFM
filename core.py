@@ -72,7 +72,8 @@ if config['FORCEPARSE']:
         xfmap.closefiles()
 #else read from a pre-parsed csv
 else:   
-    xfmap.read(config, odir)
+        pixelseries = xfmap.read(config, pixelseries, odir)
+
 
 runtime = time.time() - starttime
 
@@ -104,6 +105,13 @@ utils.varsizes(locals().items())
 
 #create and show colour map
 if config['DOCOLOURS'] == True:
+
+    colour.initialise(config, xfmap.energy)
+    
+    for i in np.arange(pixelseries.npx):
+        counts=pixelseries.data[i,:]
+        pixelseries.rvals[i], pixelseries.bvals[i], pixelseries.gvals[i], pixelseries.totalcounts[i] = colour.spectorgb(config, xfmap.energy, counts)
+
     rgbarray=colour.complete(pixelseries.rvals, pixelseries.gvals, pixelseries.bvals, xfmap.xres, pixelseries.nrows, odir)
 
 #perform clustering

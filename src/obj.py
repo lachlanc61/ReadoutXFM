@@ -18,7 +18,8 @@ class Xfmap:
         #assign input file object for reading
         try:
             self.infile = open(fi, mode='rb') # rb = read binary
-            self.outfile = open(fo, mode='wb')   #wb = write binary
+            if config['WRITESUBMAP']:
+                self.outfile = open(fo, mode='wb')   #wb = write binary
         except FileNotFoundError:
             print("FATAL: incorrect filepath/files not found")
 
@@ -128,12 +129,10 @@ class Xfmap:
 
         return pxseries
 
-    def read(self, config, odir):
-        pass
-        """
-            data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows \
-            = readspec(config, odir)
-        """
+    def read(self, config, pxseries, odir):
+        pxseries=parser.readspec(config, self, pxseries, odir)
+
+        return pxseries
 
     def nextchunk(self):
         #NB: chunkdx likely broken after refactor

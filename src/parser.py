@@ -203,28 +203,21 @@ def readpxdata(locstream, config, readlength, xfmap, pxseries):
 
     return(chan, counts)
 
-def readspec(config, odir):
+def readspec(config, self, pxseries, odir):
     """
     read data from a pre-saved datfile
         does not currently return as much information as the full parse
     """
     print("loading from file", config['outfile'])
-    data = np.loadtxt(os.path.join(odir, config['outfile']), dtype=np.uint16)
-    pxlen=np.loadtxt(os.path.join(odir, "pxlen.txt"), dtype=np.uint16)
-    xidx=np.loadtxt(os.path.join(odir, "xidx.txt"), dtype=np.uint16)
-    yidx=np.loadtxt(os.path.join(odir, "yidx.txt"), dtype=np.uint16)
-    det=np.loadtxt(os.path.join(odir, "detector.txt"), dtype=np.uint16)
-    dt=np.loadtxt(os.path.join(odir, "dt.txt"), dtype=np.uint16)
+    pxseries.data = np.loadtxt(os.path.join(odir, config['outfile']), dtype=np.uint16)
+    pxseries.pxlen=np.loadtxt(os.path.join(odir, "pxlen.txt"), dtype=np.uint16)
+    pxseries.xidx=np.loadtxt(os.path.join(odir, "xidx.txt"), dtype=np.uint16)
+    pxseries.yidx=np.loadtxt(os.path.join(odir, "yidx.txt"), dtype=np.uint16)
+    pxseries.det=np.loadtxt(os.path.join(odir, "detector.txt"), dtype=np.uint16)
+    pxseries.dt=np.loadtxt(os.path.join(odir, "dt.txt"), dtype=np.uint16)
     print("loaded successfully", config['outfile']) 
 
-    corrected=None
-    rvals=None
-    bvals=None
-    gvals=None
-    totalcounts=None
-    nrows=None
-
-    return(data, corrected, pxlen, xidx, yidx, det, dt, rvals, bvals, gvals, totalcounts, nrows) 
+    return(pxseries) 
 
 
 def writepxheader(config, xfmap, pxseries):
