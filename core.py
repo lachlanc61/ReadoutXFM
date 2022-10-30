@@ -42,6 +42,8 @@ config, args=utils.readargs(config, argsparsed)
 
 config, fi, fname, fsub, odir = utils.initcfg(config, args)
 
+UDET=config['use_detector']
+
 starttime = time.time()             #init timer
 
 #-----------------------------------
@@ -53,12 +55,12 @@ starttime = time.time()             #init timer
 #   places pointer (map.idx) at start of first pixel record
 xfmap = obj.Xfmap(config, fi, fsub)
 
+detarray=xfmap.getdetectors(config)
+
 #initialise the spectrum-by-pixel object
 #       pre-creates all arrays for storing data, pixel header values etc
 #       WARNING: big memory spike here if map is large
-pixelseries = obj.PixelSeries(config, xfmap)
-
-#BEGIN PARSING
+pixelseries = obj.PixelSeries(config, xfmap, detarray)
 
 #start a timer
 starttime = time.time() 
@@ -72,7 +74,7 @@ if config['FORCEPARSE']:
         xfmap.closefiles()
 #else read from a pre-parsed csv
 else:   
-        pixelseries = xfmap.read(config, pixelseries, odir)
+        pixelseries = pixelseries.readseries(config, odir)
 
 
 runtime = time.time() - starttime
@@ -109,14 +111,14 @@ if config['DOCOLOURS'] == True:
     colour.initialise(config, xfmap.energy)
     
     for i in np.arange(pixelseries.npx):
-        counts=pixelseries.data[i,:]
+        counts=pixelseries.data[UDET,i,:]
         pixelseries.rvals[i], pixelseries.bvals[i], pixelseries.gvals[i], pixelseries.totalcounts[i] = colour.spectorgb(config, xfmap.energy, counts)
 
     rgbarray=colour.complete(pixelseries.rvals, pixelseries.gvals, pixelseries.bvals, xfmap.xres, pixelseries.nrows, odir)
 
 #perform clustering
 if config['DOCLUST']:
-    categories, classavg = clustering.complete(config, pixelseries.data, xfmap.energy, xfmap.numpx, xfmap.xres, xfmap.yres, odir)
+    categories, classavg = clustering.complete(config, pixelseries.data[UDET], xfmap.energy, xfmap.numpx, xfmap.xres, xfmap.yres, odir)
 
 print("Processing complete")
 exit()

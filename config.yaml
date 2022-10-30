@@ -72,8 +72,8 @@ outfile: "pxspec"
 convext: "_sub"
 
 #instrument config
-detid: 0  #detector ID - not currently used
 nclust: 6       #no of clusters
+use_detector: 0
 
 #figure params (currently not used)
 figx: 20         #cm width of figure

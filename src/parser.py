@@ -117,29 +117,7 @@ def getstream(xfmap, idx, length):
         
     return locstream, idx
 
-"""
-def initpx(config, xfmap):
-    pxstart=xfmap.idx
-    initlen=config['PXHEADERMIN']
-
-    #raise an error if chunk breaks pixel header - should be rare
-    if pxstart+config['PXHEADERMIN'] > xfmap.streamlen:
-        raise ValueError("ERROR: pixel header crosses chunk - increase chunk size slightly and repeat")
-
-    headstream=xfmap.stream[xfmap.idx:xfmap.idx+initlen]
-
-    #unpack the header flag and length
-    pxflag0, pxflag1, pxlen = xfmap.minstruct.unpack(headstream)
-
-    pxflag=pxflag0+pxflag1
-    #   check for pixel start flag "DP":
-    if not (pxflag == b'DP'):
-        raise ValueError(f"ERROR: pixel flag 'DP' expected but not found at byte {pxstart}")
-
-    return pxlen    
-"""
-
-def readpxheader(headstream, config, readlength, xfmap, pxseries):
+def readpxheader(headstream, config, readlength, xfmap):
     """"
     Pixel Record
     Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
@@ -166,23 +144,16 @@ def readpxheader(headstream, config, readlength, xfmap, pxseries):
 
     #unpack the header
     #   faster to unpack into temp variables vs directly into pbject attrs. not sure why atm
-    pxflag0, pxflag1, pxlen, xcoord, ycoord, det, dt = xfmap.headstruct.unpack(headstream)
+    pxflag0, pxflag1, pxlen, xidx, yidx, det, dt = xfmap.headstruct.unpack(headstream)
 
     #   check for pixel start flag "DP":
     pxflag=pxflag0+pxflag1
     if not (pxflag == b'DP'):
         raise ValueError(f"ERROR: pixel flag 'DP' expected but not found for pixel {xfmap.pxidx}")
 
-    #assign object attrs from temp vars
-    pxseries.pxlen[xfmap.pxidx]=pxlen
-    pxseries.xidx[xfmap.pxidx]=xcoord
-    pxseries.yidx[xfmap.pxidx]=ycoord
-    pxseries.det[xfmap.pxidx]=det
-    pxseries.dt[xfmap.pxidx]=dt
+    return pxlen, xidx, yidx, det, dt
 
-    return pxlen, pxseries
-
-def readpxdata(locstream, config, readlength, xfmap, pxseries):
+def readpxdata(locstream, config, readlength):
 
     #initialise channel index and result arrays
     chan=np.zeros(int((readlength)/config['BYTESPERCHAN']), dtype=int)
@@ -203,7 +174,7 @@ def readpxdata(locstream, config, readlength, xfmap, pxseries):
 
     return(chan, counts)
 
-def readspec(config, self, pxseries, odir):
+def readseries(config, pxseries, odir):
     """
     read data from a pre-saved datfile
         does not currently return as much information as the full parse
@@ -217,8 +188,18 @@ def readspec(config, self, pxseries, odir):
     pxseries.dt=np.loadtxt(os.path.join(odir, "dt.txt"), dtype=np.uint16)
     print("loaded successfully", config['outfile']) 
 
-    return(pxseries) 
+    return pxseries
 
+def exportseries(config, pxseries, odir):
+    print("saving spectrum-by-pixel to file")
+    np.savetxt(os.path.join(odir,  config['outfile'] + ".dat"), pxseries.data, fmt='%i')    
+
+def exportheader(config, pxseries, odir):
+    np.savetxt(os.path.join(odir, "pxlen.txt"), pxseries.pxlen, fmt='%i')
+    np.savetxt(os.path.join(odir, "xidx.txt"), pxseries.xidx, fmt='%i')
+    np.savetxt(os.path.join(odir, "yidx.txt"), pxseries.yidx, fmt='%i')
+    np.savetxt(os.path.join(odir, "detector.txt"), pxseries.det, fmt='%i')
+    np.savetxt(os.path.join(odir, "dt.txt"), pxseries.dt, fmt='%i')
 
 def writepxheader(config, xfmap, pxseries):
     pxflag=config['PXFLAG']

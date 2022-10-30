@@ -73,6 +73,39 @@ class Xfmap:
         self.PXHEADERLEN=config['PXHEADERLEN'] 
         self.pxlen=self.PXHEADERLEN+config['NCHAN']*4   #dummy value for pxlen
 
+
+    def getdetectors(self, config):
+        """
+        Parses beginning of self.stream and extracts pixel headers
+        Returns array of detector values
+        Breaks when det=0 is found on nonzero index
+
+        NB: assumes detectors increase sequentially and are uniform throughout file
+            eg. 0 1 2 3 repeating pixel-by-pixel
+        """
+        #initialise array and counters
+        detarray=np.zeros(20).astype(int)
+        i=0
+        j=self.idx
+
+        while True:
+            #pull stream and extract pixel header
+            headstream, j = parser.getstream(self,j,self.PXHEADERLEN)
+            pxlen, xidx, yidx, det, dt = parser.readpxheader(headstream, config, self.PXHEADERLEN, self)
+            #assign detector
+            detarray[i]=int(det)
+            #if det=0 for pixel other than 0th, increment and break
+            if (i > 0) and (det == 0):
+                break
+            #otherwise pull next stream to move index and continue
+            else:
+                readlength=pxlen-self.PXHEADERLEN
+                locstream, j = parser.getstream(self,j,readlength)
+                i+=1
+
+        return detarray[:i]
+    
+
     def parse(self, config, pxseries):
 
         print(f"pixels expected: {self.numpx}")
@@ -85,18 +118,20 @@ class Xfmap:
             
             headstream, self.idx = parser.getstream(self,self.idx,self.PXHEADERLEN)
 
-            readlength, pxseries = parser.readpxheader(headstream, config, self.PXHEADERLEN, self, pxseries)
+            pxlen, xidx, yidx, det, dt = parser.readpxheader(headstream, config, self.PXHEADERLEN, self)
 
-            readlength=readlength-self.PXHEADERLEN
+            readlength=pxlen-self.PXHEADERLEN
 
+            pxseries = pxseries.receiveheader(self.pxidx, pxlen, xidx, yidx, det, dt)
+          
             locstream, self.idx = parser.getstream(self,self.idx,readlength)
 
-            if config['WRITESUBMAP'] and utils.pxinsubmap(config, pxseries.xidx[self.pxidx], pxseries.yidx[self.pxidx]):
+            if config['WRITESUBMAP'] and utils.pxinsubmap(config, xidx, yidx):
                     parser.writepxheader(config, self, pxseries)
                     parser.writepxrecord(locstream, readlength, self)
 
             if config['PARSEMAP']:
-                chan, counts = parser.readpxdata(locstream, config, readlength, self, pxseries)
+                chan, counts = parser.readpxdata(locstream, config, readlength)
 
                 #fill gaps in spectrum 
                 #   (ie. assign all zero-count chans = 0)
@@ -107,7 +142,7 @@ class Xfmap:
                     print("WARNING: unexpected length of channel list")
 
                 #assign counts into data array
-                pxseries.data[self.pxidx,:]=counts
+                pxseries.data[det,self.pxidx,:]=counts
 
             self.fullidx=self.chunkidx+self.idx
 
@@ -126,11 +161,6 @@ class Xfmap:
         #store no. pixels and rows read successfully
         pxseries.npx=self.pxidx+1
         pxseries.nrows=self.rowidx+1 
-
-        return pxseries
-
-    def read(self, config, pxseries, odir):
-        pxseries=parser.readspec(config, self, pxseries, odir)
 
         return pxseries
 
@@ -156,7 +186,7 @@ class Xfmap:
 
 
 class PixelSeries:
-    def __init__(self, config, xfmap):
+    def __init__(self, config, xfmap, detarray):
         #initialise pixel value arrays
         self.pxlen=np.zeros(xfmap.numpx,dtype=np.uint16)
         self.xidx=np.zeros(xfmap.numpx,dtype=np.uint16)
@@ -172,22 +202,44 @@ class PixelSeries:
 
         #initialise whole data containers (WARNING: large)
         if config['PARSEMAP']: 
-            self.data=np.zeros((xfmap.numpx,config['NCHAN']),dtype=np.uint16)
-            if config['DOBG']: self.corrected=np.zeros((xfmap.numpx,config['NCHAN']),dtype=np.uint16)
+            ndet=max(detarray)+1
+
+            self.data=np.zeros((ndet,xfmap.numpx,config['NCHAN']),dtype=np.uint16)
+#            if config['DOBG']: self.corrected=np.zeros((xfmap.numpx,config['NCHAN']),dtype=np.uint16)
         else:
+        #create a small dummy array just in case
             self.data=np.zeros((1024,config['NCHAN']),dtype=np.uint16)
 
         self.npx=0
         self.nrows=0
 
+    def receiveheader(self, pxidx, pxlen, xcoord, ycoord, det, dt):
+        self.pxlen[pxidx]=pxlen
+        self.xidx[pxidx]=xcoord
+        self.yidx[pxidx]=ycoord
+        self.det[pxidx]=det
+        self.dt[pxidx]=dt
+        
+        return self
+
+    def flatten(self, data, detarray):
+        """
+        sum all detectors into single data array
+        NB: i think this creates another dataset in memory while running
+        """
+        flattened = data[0]
+        if len(detarray) > 1:
+            for i in detarray[1:]:
+                flattened+=data[i]
+        
+        return flattened
 
     def exportheader(self, config, odir):
-        np.savetxt(os.path.join(odir, "pxlen.txt"), self.pxlen, fmt='%i')
-        np.savetxt(os.path.join(odir, "xidx.txt"), self.xidx, fmt='%i')
-        np.savetxt(os.path.join(odir, "yidx.txt"), self.yidx, fmt='%i')
-        np.savetxt(os.path.join(odir, "detector.txt"), self.det, fmt='%i')
-        np.savetxt(os.path.join(odir, "dt.txt"), self.dt, fmt='%i')
+        parser.exportheader(config, self, odir)
 
     def exportseries(self, config, odir):
-        print("saving spectrum-by-pixel to file")
-        np.savetxt(os.path.join(odir,  config['outfile'] + ".dat"), self.data, fmt='%i')
+        parser.exportseries(config, self, odir)
+
+    def readseries(self, config, odir):
+        self = parser.readseries(config, self, odir)
+        return self
