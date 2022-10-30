@@ -98,6 +98,26 @@ def writefileheader(config, xfmap):
     #   .: only one in dict to write to second file
     #   think we can ignore this, the info is not used, but header is different when rewritten
 
+def getstream(xfmap, idx, length):
+
+    #if we have enough remaining in the chunk, proceed
+    if not idx+length >= xfmap.streamlen:    
+        locstream=xfmap.stream[idx:idx+length]
+        idx=idx+length
+    else:   #if step would exceed chunk
+        gotlen=xfmap.streamlen-idx  #store the length already read from this chunk
+
+        locstream=xfmap.stream[idx:xfmap.streamlen]
+
+        xfmap.nextchunk() #load next (resets map.idx)
+
+        locstream+=xfmap.stream[0:length-gotlen]
+
+        idx = length - gotlen
+        
+    return locstream, idx
+
+"""
 def initpx(config, xfmap):
     pxstart=xfmap.idx
     initlen=config['PXHEADERMIN']
@@ -117,27 +137,9 @@ def initpx(config, xfmap):
         raise ValueError(f"ERROR: pixel flag 'DP' expected but not found at byte {pxstart}")
 
     return pxlen    
+"""
 
-def getstream(xfmap, idx, length):
-
-    #if we have enough remaining in the chunk, proceed
-    if not idx+length >= xfmap.streamlen:    
-        locstream=xfmap.stream[idx:idx+length]
-    else:   #if step would exceed chunk
-        gotlen=xfmap.streamlen-idx  #store the length already read from this chunk
-
-        locstream=xfmap.stream[idx:xfmap.streamlen-1]
-
-        xfmap.nextchunk() #load next (resets map.idx)
-
-        locstream+=xfmap.stream[0:length-gotlen]
-
-        idx = 0 - gotlen
-        
-    return locstream, idx
-
-
-def readpxheader(locstream, config, xfmap, pxseries):
+def readpxheader(headstream, config, readlength, xfmap, pxseries):
     """"
     Pixel Record
     Note: not name/value pairs for file size reasons. The pixel record header is the only record type name/value pair, for easier processing. We are keeping separate records for separate detectors, since the deadtime information will also be per detector per pixel.
@@ -160,38 +162,40 @@ def readpxheader(locstream, config, xfmap, pxseries):
     Read binary as chunks
     https://stackoverflow.com/questions/71978290/python-how-to-read-binary-file-by-chunks-and-specify-the-beginning-offset
     """
-    initlen=config['PXHEADERMIN']    
-    pxheaderlen=xfmap.PXHEADERLEN
-
-    headstream=locstream[initlen:pxheaderlen]
+    headstream=headstream[:readlength]
 
     #unpack the header
     #   faster to unpack into temp variables vs directly into pbject attrs. not sure why atm
-    xcoord, ycoord, det, dt = xfmap.headstruct.unpack(headstream)
+    pxflag0, pxflag1, pxlen, xcoord, ycoord, det, dt = xfmap.headstruct.unpack(headstream)
+
+    #   check for pixel start flag "DP":
+    pxflag=pxflag0+pxflag1
+    if not (pxflag == b'DP'):
+        raise ValueError(f"ERROR: pixel flag 'DP' expected but not found for pixel {xfmap.pxidx}")
 
     #assign object attrs from temp vars
+    pxseries.pxlen[xfmap.pxidx]=pxlen
     pxseries.xidx[xfmap.pxidx]=xcoord
     pxseries.yidx[xfmap.pxidx]=ycoord
     pxseries.det[xfmap.pxidx]=det
     pxseries.dt[xfmap.pxidx]=dt
 
-    return pxseries
+    return pxlen, pxseries
 
-def readpxdata(config, locstream, pxlen, xfmap, pxseries):
-    pxheaderlen=xfmap.PXHEADERLEN
+def readpxdata(locstream, config, readlength, xfmap, pxseries):
 
     #initialise channel index and result arrays
-    chan=np.zeros(int((pxlen-pxheaderlen)/config['BYTESPERCHAN']), dtype=int)
-    counts=np.zeros(int((pxlen-pxheaderlen)/config['BYTESPERCHAN']), dtype=int)
+    chan=np.zeros(int((readlength)/config['BYTESPERCHAN']), dtype=int)
+    counts=np.zeros(int((readlength)/config['BYTESPERCHAN']), dtype=int)
     #       4 = no. bytes in each x,y pair
     #         = 2x2 bytes each 
 
     #create struct object for reading
-    fmt= "<%dH" % ((pxlen-pxheaderlen) // 2)
+    fmt= "<%dH" % ((readlength) // 2)
     chanstruct=struct.Struct(fmt)
 
     #read the channel data
-    chandata=chanstruct.unpack(locstream[pxheaderlen:pxlen])
+    chandata=chanstruct.unpack(locstream[:readlength])
     #take even indexes for channels
     chan=chandata[::2]
     #take odd indexes for counts
@@ -225,26 +229,24 @@ def readspec(config, odir):
 
 def writepxheader(config, xfmap, pxseries):
     pxflag=config['PXFLAG']
+    pxflag0=pxflag[0].encode(config['CHARENCODE'])
+    pxflag1=pxflag[1].encode(config['CHARENCODE'])
     pxlen=pxseries.pxlen[xfmap.pxidx]
     xcoord=pxseries.xidx[xfmap.pxidx]
     ycoord=pxseries.yidx[xfmap.pxidx]
     det=pxseries.det[xfmap.pxidx]
     dt=pxseries.dt[xfmap.pxidx]
 
-    if (xcoord >= config['submap_x1'] and xcoord < config['submap_x2'] and
-            ycoord >= config['submap_y1'] and ycoord < config['submap_y2']
-    ):
-
-        #write the header with x/y coords adjusted
-        outstream=xfmap.headstruct.pack(pxflag[0],pxflag[1], pxlen, xcoord-config['submap_x1'], \
-                                        ycoord-config['submap_y1'], det, dt)
-        xfmap.outfile.write(outstream)
+    #write the header with x/y coords adjusted
+    outstream=xfmap.headstruct.pack(pxflag0,pxflag1, pxlen, xcoord-config['submap_x1'], \
+                                    ycoord-config['submap_y1'], det, dt)
+    xfmap.outfile.write(outstream)
 
         # write the channel data as-is
         
 
-def writepxrecord(locstream, pxlen, xfmap):
-    xfmap.outfile.write(locstream[xfmap.pxheaderlen:pxlen])
+def writepxrecord(locstream, readlength, xfmap):
+    xfmap.outfile.write(locstream[:readlength])
 
 
 def endrow(xfmap):

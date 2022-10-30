@@ -22,7 +22,7 @@ def readargs(config, parser):
     parser.add_argument("-i", "--infile", help="Input file (.GeoPIXE)", type=os.path.abspath)
     parser.add_argument("-o", "--outdir", help="Output path", type=os.path.abspath)
     parser.add_argument("-s", "--submap", action='store_true', help="Export submap (.GeoPIXE)")
-    parser.add_argument("-ss", "--subonly", action='store_true', help="Only export submap")
+    parser.add_argument("-p", "--parse", action='store_true', help="Only export submap")
     parser.add_argument("-f", "--force", action='store_true', help="Force recalculation of all pixels/classes")
     parser.add_argument('-c', "--coords", nargs='+', type=int, help="Coordinates for submap as: x1 y1 x2 y2")
 
@@ -35,11 +35,11 @@ def readargs(config, parser):
         config['outdir'] = args.outdir
 
     if args.submap:
-        config['DOSUBMAP'] = True
+        config['WRITESUBMAP'] = True
 
-    if args.subonly:
-        config['SUBMAPONLY'] = True
-        config['DOSUBMAP'] = True
+    if args.parse:
+        config['PARSEMAP'] = True
+    else:
         print("EXPORTING SUBMAPS ONLY")
 
     if args.force:
@@ -53,7 +53,7 @@ def readargs(config, parser):
         config['submap_x2']=args.coords[2]
         config['submap_y2']=args.coords[3]
 
-        if not config['DOSUBMAP']:
+        if not config['WRITESUBMAP']:
             print("WARNING: submap coordinates set but submap flag False")
 
     return config, args
@@ -61,12 +61,12 @@ def readargs(config, parser):
 
 def initcfg(config, args):
         
-    if config['SUBMAPONLY']:
+    if not config['PARSEMAP']:
         config['DOCOLOURS']=False
         config['DOCLUST']=False
         config['DOBG']=False
 
-    if config['DOSUBMAP']:
+    if config['WRITESUBMAP']:
         if config['submap_x2'] == 0:
             config['submap_x2']=int(99999)
         if config['submap_y2'] == 0:
@@ -109,7 +109,7 @@ def initcfg(config, args):
     if not config['FTYPE'] == ".GeoPIXE":
         raise ValueError(f"FATAL: filetype {config['FTYPE']} not recognised")
 
-    if config['DOSUBMAP']:
+    if config['WRITESUBMAP']:
         subname=fname+config['convext']
         fsub = os.path.join(odir,subname+config['FTYPE'])
 
@@ -204,3 +204,11 @@ def varsizes(allitems):
                                                     key= lambda x: -x[1])[:10]:
             print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
 
+
+def pxinsubmap(config, xcoord, ycoord):
+    if (xcoord >= config['submap_x1'] and xcoord < config['submap_x2'] and
+            ycoord >= config['submap_y1'] and ycoord < config['submap_y2']
+    ):
+        return True
+    else:
+        return False

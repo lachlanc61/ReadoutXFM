@@ -54,18 +54,7 @@ xfmap = obj.Xfmap(config, fi, fsub)
 #initialise the spectrum-by-pixel object
 #       pre-creates all arrays for storing data, pixel header values etc
 #       WARNING: big memory spike here if map is large
-pixelseries = parser.PixelSeries(config, map)
-
-#if we are creating colourmaps, set up colour routine
-if config['DOCOLOURS'] == True: colour.initialise(config, map.energy)
-
-#   if we are skipping some of the file
-#       assign the ratio and adjust totalpx
-if config['SHORTRUN']:
-    skipratio=config['shortpct']/100
-    trunc_y=int(np.ceil(map.yres*skipratio))
-    map.numpx=map.xres*trunc_y
-    print(f"SHORT RUN: ending at {skipratio*100} %")
+pixelseries = obj.PixelSeries(config, xfmap)
 
 #BEGIN PARSING
 
@@ -76,13 +65,12 @@ starttime = time.time()
 #   begin parsing
 if config['FORCEPARSE']:
     try:
-        map.parse(config, pixelseries)
+        pixelseries = xfmap.parse(config, pixelseries)
     finally:
-        map.closefiles()
-#else we are reading from a pre-parsed csv
-#   do that instead
+        xfmap.closefiles()
+#else read from a pre-parsed csv
 else:   
-    map.read(config, odir)
+    xfmap.read(config, odir)
 
 runtime = time.time() - starttime
 
@@ -90,7 +78,7 @@ print(
 "---------------------------\n"
 "MAP COMPLETE\n"
 "---------------------------\n"
-f"pixels expected (X*Y): {map.numpx}\n"
+f"pixels expected (X*Y): {xfmap.numpx}\n"
 f"pixels found: {pixelseries.npx}\n"
 f"total time: {round(runtime,2)} s\n"
 f"time per pixel: {round((runtime/pixelseries.npx),6)} s\n"
@@ -99,7 +87,7 @@ f"time per pixel: {round((runtime/pixelseries.npx),6)} s\n"
 
 pixelseries.exportheader(config, odir)
 
-if config['SUBMAPONLY']:
+if not config['PARSEMAP']:
     print("WRITE COMPLETE")
     print("---------------------------")
     exit()
@@ -114,11 +102,11 @@ utils.varsizes(locals().items())
 
 #create and show colour map
 if config['DOCOLOURS'] == True:
-    rgbarray=colour.complete(pixelseries.rvals, pixelseries.gvals, pixelseries.bvals, map.xres, pixelseries.nrows, odir)
+    rgbarray=colour.complete(pixelseries.rvals, pixelseries.gvals, pixelseries.bvals, xfmap.xres, pixelseries.nrows, odir)
 
 #perform clustering
 if config['DOCLUST']:
-    categories, classavg = clustering.complete(config, pixelseries.data, map.energy, map.numpx, map.xres, map.yres, odir)
+    categories, classavg = clustering.complete(config, pixelseries.data, xfmap.energy, xfmap.numpx, xfmap.xres, xfmap.yres, odir)
 
 print("Processing complete")
 exit()
@@ -145,4 +133,6 @@ OO:
     map+pxseries:           0.001852 s
     chunk parsing:          0.002505 s
 
+refactored:
+    read+write:             0.000643 s
 """

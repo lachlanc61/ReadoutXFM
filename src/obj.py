@@ -66,8 +66,9 @@ class Xfmap:
         self.numpx = self.xres*self.yres        #expected number of pixels
 
         #init struct for reading pixel headers
-        self.headstruct=struct.Struct("<3Hf")
-        self.minstruct=struct.Struct("<ccI")
+        #self.minstruct=struct.Struct("<ccI")
+        #self.headstruct=struct.Struct("<3Hf")
+        self.headstruct=struct.Struct("<ccI3Hf")
         self.PXHEADERLEN=config['PXHEADERLEN'] 
         self.pxlen=self.PXHEADERLEN+config['NCHAN']*4   #dummy value for pxlen
 
@@ -81,20 +82,20 @@ class Xfmap:
 
         while True:
             
-            pxlen = parser.initpx(config, self)
-            
-            pxseries.pxlen[self.pxidx]=pxlen
+            headstream, self.idx = parser.getstream(self,self.idx,self.PXHEADERLEN)
 
-            locstream, self.idx = parser.getstream(self,self.idx,pxlen)
+            readlength, pxseries = parser.readpxheader(headstream, config, self.PXHEADERLEN, self, pxseries)
 
-            pxseries = parser.readpxheader(locstream, config, pxseries)
+            readlength=readlength-self.PXHEADERLEN
 
-            if config['WRITESUBMAP']:
-                parser.writepxheader(config, self, pxseries)
-                parser.writepxrecord(locstream, self.pxlen, self)
+            locstream, self.idx = parser.getstream(self,self.idx,readlength)
+
+            if config['WRITESUBMAP'] and utils.pxinsubmap(config, pxseries.xidx[self.pxidx], pxseries.yidx[self.pxidx]):
+                    parser.writepxheader(config, self, pxseries)
+                    parser.writepxrecord(locstream, readlength, self)
 
             if config['PARSEMAP']:
-                chan, counts = parser.readpxdata(config, locstream, self.pxlen, self, pxseries)
+                chan, counts = parser.readpxdata(locstream, config, readlength, self, pxseries)
 
                 #fill gaps in spectrum 
                 #   (ie. assign all zero-count chans = 0)
@@ -107,7 +108,6 @@ class Xfmap:
                 #assign counts into data array
                 pxseries.data[self.pxidx,:]=counts
 
-            self.idx+=pxlen
             self.fullidx=self.chunkidx+self.idx
 
             #stop when pixel index greater than expected no. pixels
@@ -126,6 +126,8 @@ class Xfmap:
         pxseries.npx=self.pxidx+1
         pxseries.nrows=self.rowidx+1 
 
+        return pxseries
+
     def read(self, config, odir):
         pass
         """
@@ -134,6 +136,7 @@ class Xfmap:
         """
 
     def nextchunk(self):
+        #NB: chunkdx likely broken after refactor
         self.chunkidx = self.chunkidx + self.idx
 
         self.stream = self.infile.read(self.chunksize)
@@ -169,7 +172,7 @@ class PixelSeries:
         self.totalcounts=np.zeros(xfmap.numpx)
 
         #initialise whole data containers (WARNING: large)
-        if not config['SUBMAPONLY']: 
+        if config['PARSEMAP']: 
             self.data=np.zeros((xfmap.numpx,config['NCHAN']),dtype=np.uint16)
             if config['DOBG']: self.corrected=np.zeros((xfmap.numpx,config['NCHAN']),dtype=np.uint16)
         else:
@@ -187,5 +190,5 @@ class PixelSeries:
         np.savetxt(os.path.join(odir, "dt.txt"), self.dt, fmt='%i')
 
     def exportseries(self, config, odir):
-        print(f"saving spectrum-by-pixel to file")
+        print("saving spectrum-by-pixel to file")
         np.savetxt(os.path.join(odir,  config['outfile'] + ".dat"), self.data, fmt='%i')
