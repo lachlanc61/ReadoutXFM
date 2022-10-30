@@ -3,7 +3,7 @@
 #-----------------------------------
 #default input file and output directory
 
-infile:  "data/geo2.GeoPIXE"   #assign input file
+infile:  "data/ts2_0.GeoPIXE"   #assign input file
 #infile:  "data/geo2_sub.GeoPIXE" 
 outdir: "out/"
 #infile: "/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/tamf_9_32.GeoPIXE"      #input (abs or relative to script)
