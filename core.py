@@ -15,10 +15,12 @@ Parses spectrum-by-pixel maps from IXRF XFM
 
 - parses binary .GeoPIXE files
 - extracts pixel parameters
-- projects spectra onto simple RGB channels
-- displays as RGB
+- extracts pixel data
+- classifies data via PCA and UMAP
+- displays classified maps
+- produces average spectrum per class
 
-./data has example dataset
+./data has example datasets
 
 """
 
