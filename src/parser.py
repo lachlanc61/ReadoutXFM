@@ -61,16 +61,6 @@ def readfileheader(config, xfmap):
 def writefileheader(config, xfmap):
     #modify width and height in header and re-print
 
-    """
-    osize=xfmap.headerdict["File Header"]["Xres"]
-    realsize=osize-nedgepx
-
-    discard px if 
-
-
-    oldxdim=xfmap.headerdict["File Header"]["Width (mm)"]
-    """
-
     newxres=config['submap_x2']-config['submap_x1']
     #if new res larger than original, set to original
     if newxres > xfmap.xres:
