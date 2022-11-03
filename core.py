@@ -27,7 +27,7 @@ Parses spectrum-by-pixel maps from IXRF XFM
 #-----------------------------------
 #vars
 #-----------------------------------
-USER_CONFIG='config.yaml'
+USER_CONFIG='defaults.yaml'
 PACKAGE_CONFIG='src/protocol.yaml'
 
 #-----------------------------------
