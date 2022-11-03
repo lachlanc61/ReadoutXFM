@@ -1,12 +1,7 @@
-import os
 import time
-import gc
-import time
-import argparse
+import sys
 import numpy as np
-
 import src.utils as utils
-import src.parser as parser
 import src.colour as colour
 import src.clustering as clustering
 import src.obj as obj
@@ -21,13 +16,11 @@ Parses spectrum-by-pixel maps from IXRF XFM
 - produces average spectrum per class
 
 ./data has example datasets
-
 """
-
 #-----------------------------------
 #vars
 #-----------------------------------
-USER_CONFIG='defaults.yaml'
+USER_CONFIG='config.yaml'
 PACKAGE_CONFIG='src/protocol.yaml'
 
 #-----------------------------------
@@ -39,9 +32,7 @@ config, rawconfig, args=utils.readargs(PACKAGE_CONFIG, USER_CONFIG)
 
 #initialise read file and all directories relative to current script
 
-config, fi, fname, fsub, odir = utils.initcfg(config, args)
-
-UDET=config['use_detector']
+config, fi, fname, fsub, odir = utils.initcfg(config)
 
 starttime = time.time()             #init timer
 
@@ -73,7 +64,7 @@ if config['FORCEPARSE']:
         xfmap.closefiles()
 #else read from a pre-parsed csv
 else:   
-        pixelseries = pixelseries.readseries(config, odir)
+    pixelseries = pixelseries.readseries(config, odir)
 
 
 runtime = time.time() - starttime
@@ -103,6 +94,7 @@ if config['SAVEPXSPEC']:
 utils.varsizes(locals().items())
 
 #perform post-analysis:
+UDET=config['use_detector'] #define working detector for multi-detector files
 
 #create and show colour map
 if config['DOCOLOURS'] == True:
@@ -120,8 +112,7 @@ if config['DOCLUST']:
     categories, classavg = clustering.complete(config, pixelseries.data[UDET], xfmap.energy, xfmap.numpx, xfmap.xres, xfmap.yres, odir)
 
 print("Processing complete")
-exit()
-
+sys.exit()
 
 """
 runtime log:

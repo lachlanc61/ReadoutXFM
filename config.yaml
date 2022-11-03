@@ -3,15 +3,17 @@
 #-----------------------------------
 #default input file and output directory
 
-infile:  "data/ts2_0.GeoPIXE"   #assign input file
-outdir: "out/"
+infile:  
+- "data/ts2_0.GeoPIXE"   #assign input file
+outdir: 
+- "out/"
 
-PARSEMAP: False   #load spectrum-by-pixel data
+PARSEMAP: True   #load spectrum-by-pixel data
 
 chunksize: 100    #size in Mb to load into memory at a time
 
-DOCOLOURS: False   #run colourmap
-DOCLUST: False     #run clustering
+DOCOLOURS: True   #run colourmap
+DOCLUST: True     #run clustering
 
 #recalc flags
 FORCEPARSE: True     #always parse datafile

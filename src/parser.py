@@ -61,13 +61,13 @@ def readfileheader(config, xfmap):
 def writefileheader(config, xfmap):
     #modify width and height in header and re-print
 
-    newxres=config['submap_x2']-config['submap_x1']
+    newxres=config['submap_x'][1]-config['submap_x'][0]
     #if new res larger than original, set to original
     if newxres > xfmap.xres:
         newxres = xfmap.xres
     newxdim=newxres*(xfmap.headerdict["File Header"]["Width (mm)"]/xfmap.headerdict["File Header"]["Xres"])
 
-    newyres=config['submap_y2']-config['submap_y1']
+    newyres=config['submap_y'][1]-config['submap_y'][0]
     #if new res larger than original, set to original
     if newyres > xfmap.yres:
         newyres = xfmap.yres
@@ -215,8 +215,8 @@ def writepxheader(config, xfmap, pxseries):
     dt=pxseries.dt[xfmap.pxidx]
 
     #write the header with x/y coords adjusted
-    outstream=xfmap.headstruct.pack(pxflag0,pxflag1, pxlen, xcoord-config['submap_x1'], \
-                                    ycoord-config['submap_y1'], det, dt)
+    outstream=xfmap.headstruct.pack(pxflag0,pxflag1, pxlen, xcoord-config['submap_x'][0], \
+                                    ycoord-config['submap_y'][0], det, dt)
     xfmap.outfile.write(outstream)
 
         # write the channel data as-is

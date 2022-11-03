@@ -42,7 +42,8 @@ def readargs(pkgconfig, usrconfig):
     parsed.add_argument("-s", "--submap", action='store_true', help="Export submap (.GeoPIXE)")
     parsed.add_argument("-p", "--parse", action='store_true', help="Only export submap")
     parsed.add_argument("-f", "--force", action='store_true', help="Force recalculation of all pixels/classes")
-    parsed.add_argument('-xy', "--coords", nargs='+', type=int, help="Coordinates for submap as: x1 y1 x2 y2")
+    parsed.add_argument('-x', "--xcoords", nargs='+', type=int, help="X coordinates for submap as: xstart xend")
+    parsed.add_argument('-y', "--ycoords", nargs='+', type=int, help="Y coordinates for submap as: ystart yend")
     parsed.add_argument('-ch', "--chunksize", nargs='+', type=int, help="Chunk size to load (in Mb)")
 
     args = parsed.parse_args()
@@ -83,50 +84,54 @@ def readargs(pkgconfig, usrconfig):
     if args.chunksize is not None:
         config['chunksize'] = args.chunksize
 
-    if args.coords is not None:
-        config['submap_x1']=args.coords[0]
-        config['submap_y1']=args.coords[1]
-        config['submap_x2']=args.coords[2]
-        config['submap_y2']=args.coords[3]
+    if args.xcoords is not None:
+        config['submap_x'][0]=args.coords[0]
+        config['submap_x'][1]=args.coords[1]
 
         if not config['WRITESUBMAP']:
             print("WARNING: submap coordinates set but submap flag False")
 
-    return config, rawconfig, args
+    if args.ycoords is not None:
+        config['submap_y'][0]=args.coords[2]
+        config['submap_y'][1]=args.coords[3]
 
+        if not config['WRITESUBMAP']:
+            print("WARNING: submap coordinates set but submap flag False")
 
-def initcfg(config, args):
-        
     if not config['PARSEMAP']:
         config['DOCOLOURS']=False
         config['DOCLUST']=False
         config['DOBG']=False
 
     if config['WRITESUBMAP']:
-        if config['submap_x2'] == 0:
-            config['submap_x2']=int(99999)
-        if config['submap_y2'] == 0:
-            config['submap_y2']=int(99999)
+        if config['submap_x'][1] == 0:
+            config['submap_x'][1]=int(99999)
+        if config['submap_y'][1] == 0:
+            config['submap_y'][1]=int(99999)
 
-        if (config['submap_x1'] >= config['submap_x2']):
+        if (config['submap_x'][0] >= config['submap_x'][1]):
             raise ValueError("FATAL: x2 nonzero but smaller than x1")
-        if (config['submap_y1'] >= config['submap_y2']):
+        if (config['submap_y'][0] >= config['submap_y'][1]):
             raise ValueError("FATAL: y2 nonzero but smaller than y1")
-            
+    return config, rawconfig, args
+
+
+def initcfg(config):
+
     script = os.path.realpath(__file__) #_file = current script
     spath=os.path.dirname(script) 
     spath=os.path.dirname(spath)
     
     #check if paths are absolute or relative based on leading /
-    if config['infile'].startswith('/'):
-        fi=config['infile']
+    if config['infile'][0].startswith('/'):
+        fi=config['infile'][0]
     else:
-        fi = os.path.join(spath,config['infile'])
+        fi = os.path.join(spath,config['infile'][0])
 
-    if config['outdir'].startswith('/'):
-        odir=config['outdir']
+    if config['outdir'][0].startswith('/'):
+        odir=config['outdir'][0]
     else:
-        odir=os.path.join(spath,config['outdir'])
+        odir=os.path.join(spath,config['outdir'][0])
 
     #extract name of input file
     fname = os.path.splitext(os.path.basename(fi))[0]
@@ -242,8 +247,8 @@ def varsizes(allitems):
 
 
 def pxinsubmap(config, xcoord, ycoord):
-    if (xcoord >= config['submap_x1'] and xcoord < config['submap_x2'] and
-            ycoord >= config['submap_y1'] and ycoord < config['submap_y2']
+    if (xcoord >= config['submap_x'][0] and xcoord < config['submap_x'][1] and
+            ycoord >= config['submap_y'][0] and ycoord < config['submap_y'][1]
     ):
         return True
     else:
