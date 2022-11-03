@@ -3,19 +3,18 @@
 #-----------------------------------
 #default input file and output directory
 
-infile:  "data/ts2_0.GeoPIXE"   #assign input file
-#infile:  "data/geo2_sub.GeoPIXE" 
-outdir: "out/"
-#infile: "/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/tamf_9_32.GeoPIXE"      #input (abs or relative to script)
-#outdir: '/mnt/d/DATA/XFMDATA/2022/Simpson_Brenainn/TAMF_220622/TAMF32_split/'                 #output directory (abs or relative to script)
+#infile:  "data/ts2_0.GeoPIXE"   #assign input file
+#outdir: "out/"
+infile: "/mnt/d/DATA/XFMDATA/2022/dimarco_zoey/sections2_25um_221101/full_25um.GeoPIXE"      #input (abs or relative to script)
+outdir: '/mnt/d/DATA/XFMDATA/2022/dimarco_zoey/sections2_25um_221101/S4/'                 #output directory (abs or relative to script)
 
 #SUBMAP
-PARSEMAP: True   #do not create pixelseries, just write submap and exit
+PARSEMAP: False   #do not create pixelseries, just write submap and exit
 WRITESUBMAP: True    #write a submap
-submap_x1: 10   #coordinates for writing submap
-submap_y1: 15  ##BS *-900-1918-*
-submap_x2: 100
-submap_y2: 50
+submap_x1: 5000   #coordinates for writing submap
+submap_y1: 0  ##BS *-900-1918-*
+submap_x2: 6700
+submap_y2: 0
 
 #submap_x1: 0   #coordinates for writing submap
 #submap_y1: 2  ##BS *-900-1918-*
@@ -32,8 +31,8 @@ FORCEKMEANS: True    #always recalc kmeans
 #FLAGS
 #-----------------------------------
 
-DOCOLOURS: True   #run colourmap1
-DOCLUST: True     #run clustering
+DOCOLOURS: False   #run colourmap1
+DOCLUST: False     #run clustering
 
 SEPSUMSPEC: False #sum class spectra
 SAVEPXSPEC: False #save pixel spectra
@@ -58,7 +57,9 @@ DEBUG2: False    #second-level debug flag (channels)
 #chunksize: 104857600   #100 Mb
 #chunksize: 1073741824 #1 Gb
 #chunksize: 2147483648  #2 Gb
-chunksize: 10737418240
+chunksize: 5368709120 #5 Gb
+#chunksize: 10073741824 #10 Gb
+#chunksize: 10737418240
 
 #infile: "geo_nfpy11.GeoPIXE"
 #infile: "geo_ln_chle.GeoPIXE"

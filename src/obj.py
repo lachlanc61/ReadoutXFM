@@ -73,6 +73,7 @@ class Xfmap:
         self.PXHEADERLEN=config['PXHEADERLEN'] 
         self.pxlen=self.PXHEADERLEN+config['NCHAN']*4   #dummy value for pxlen
 
+        self.detarray=self.getdetectors(config)
 
     def getdetectors(self, config):
         """
@@ -146,17 +147,19 @@ class Xfmap:
 
             self.fullidx=self.chunkidx+self.idx
 
-            #stop when pixel index greater than expected no. pixels
-            if self.pxidx >= (self.numpx-1):
-                print(f"ENDING AT: Row {self.rowidx}/{self.yres} at pixel {self.pxidx}")
-                break
+            #if on last detector for this pixel, increment counters and check end
+            if det == max(self.detarray):
+                #stop when pixel index greater than expected no. pixels
+                if (self.pxidx >= (self.numpx-1)):
+                    print(f"ENDING AT: Row {self.rowidx}/{self.yres} at pixel {self.pxidx}")
+                    break
 
-            #print pixel index at end of every row
-            if self.pxidx % self.xres == (self.xres-1): 
-                print(f"Row {self.rowidx}/{self.yres-1} at pixel {self.pxidx}, byte {self.fullidx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
-                self.rowidx+=1
+                #print pixel index at end of every row
+                if self.pxidx % self.xres == (self.xres-1): 
+                    print(f"Row {self.rowidx}/{self.yres-1} at pixel {self.pxidx}, byte {self.fullidx} ({100*self.fullidx/self.fullsize:.1f} %)", end='\r')
+                    self.rowidx+=1
 
-            self.pxidx+=1    #next pixel
+                self.pxidx+=1    #next pixel
 
         #store no. pixels and rows read successfully
         pxseries.npx=self.pxidx+1
@@ -186,7 +189,7 @@ class Xfmap:
 
 
 class PixelSeries:
-    def __init__(self, config, xfmap, detarray):
+    def __init__(self, config, xfmap):
         #initialise pixel value arrays
         self.pxlen=np.zeros(xfmap.numpx,dtype=np.uint16)
         self.xidx=np.zeros(xfmap.numpx,dtype=np.uint16)
@@ -202,7 +205,7 @@ class PixelSeries:
 
         #initialise whole data containers (WARNING: large)
         if config['PARSEMAP']: 
-            ndet=max(detarray)+1
+            ndet=max(xfmap.detarray)+1
 
             self.data=np.zeros((ndet,xfmap.numpx,config['NCHAN']),dtype=np.uint16)
 #            if config['DOBG']: self.corrected=np.zeros((xfmap.numpx,config['NCHAN']),dtype=np.uint16)

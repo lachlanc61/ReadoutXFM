@@ -55,12 +55,10 @@ starttime = time.time()             #init timer
 #   places pointer (map.idx) at start of first pixel record
 xfmap = obj.Xfmap(config, fi, fsub)
 
-detarray=xfmap.getdetectors(config)
-
 #initialise the spectrum-by-pixel object
 #       pre-creates all arrays for storing data, pixel header values etc
 #       WARNING: big memory spike here if map is large
-pixelseries = obj.PixelSeries(config, xfmap, detarray)
+pixelseries = obj.PixelSeries(config, xfmap)
 
 #start a timer
 starttime = time.time() 
