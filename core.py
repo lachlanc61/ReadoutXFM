@@ -27,16 +27,15 @@ Parses spectrum-by-pixel maps from IXRF XFM
 #-----------------------------------
 #vars
 #-----------------------------------
-CONFIG_FILE='config.yaml'
+USER_CONFIG='config.yaml'
+PACKAGE_CONFIG='src/protocol.yaml'
 
 #-----------------------------------
 #INITIALISE
 #-----------------------------------
 
-config=utils.readcfg(CONFIG_FILE)
-argsparsed = argparse.ArgumentParser()
-
-config, args=utils.readargs(config, argsparsed)
+#create input config from args and config files
+config, rawconfig, args=utils.readargs(PACKAGE_CONFIG, USER_CONFIG)
 
 #initialise read file and all directories relative to current script
 
@@ -54,6 +53,8 @@ starttime = time.time()             #init timer
 #   parses header into map.headerdict
 #   places pointer (map.idx) at start of first pixel record
 xfmap = obj.Xfmap(config, fi, fsub)
+
+detarray=xfmap.getdetectors(config)
 
 #initialise the spectrum-by-pixel object
 #       pre-creates all arrays for storing data, pixel header values etc

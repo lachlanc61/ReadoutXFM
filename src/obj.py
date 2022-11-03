@@ -25,7 +25,7 @@ class Xfmap:
 
         #get total size of file to parse
         self.fullsize = os.path.getsize(fi)
-        self.chunksize = int(config['chunksize'])
+        self.chunksize = int(config['chunksize'])*int(config['MBCONV'])
 
         #generate initial bytestream
         #self.stream = self.infile.read()         

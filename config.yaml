@@ -3,109 +3,29 @@
 #-----------------------------------
 #default input file and output directory
 
-#infile:  "data/ts2_0.GeoPIXE"   #assign input file
-#outdir: "out/"
-infile: "/mnt/d/DATA/XFMDATA/2022/dimarco_zoey/sections2_25um_221101/full_25um.GeoPIXE"      #input (abs or relative to script)
-outdir: '/mnt/d/DATA/XFMDATA/2022/dimarco_zoey/sections2_25um_221101/S4/'                 #output directory (abs or relative to script)
+infile:  "data/ts2_0.GeoPIXE"   #assign input file
+outdir: "out/"
 
-#SUBMAP
-PARSEMAP: False   #do not create pixelseries, just write submap and exit
-WRITESUBMAP: True    #write a submap
-submap_x1: 5000   #coordinates for writing submap
-submap_y1: 0  ##BS *-900-1918-*
-submap_x2: 6700
-submap_y2: 0
+#infile: "/mnt/d/DATA/XFMDATA/2022/dimarco_zoey/sections2_25um_221101/full_25um.GeoPIXE"      #input (abs or relative to script)
+#outdir: '/mnt/d/DATA/XFMDATA/2022/dimarco_zoey/sections2_25um_221101/S4/'                 #output directory (abs or relative to script)
 
-#submap_x1: 0   #coordinates for writing submap
-#submap_y1: 2  ##BS *-900-1918-*
-#submap_x2: 10
-#submap_y2: 5
+PARSEMAP: False   #load spectrum-by-pixel data
 
+chunksize: 100    #size in Mb to load into memory at a time
+
+DOCOLOURS: False   #run colourmap
+DOCLUST: False     #run clustering
 
 #recalc flags
 FORCEPARSE: True     #always parse datafile
 FORCERED: True       #always recalc dimensionality reduction
 FORCEKMEANS: True    #always recalc kmeans 
 
-#-----------------------------------
-#FLAGS
-#-----------------------------------
-
-DOCOLOURS: False   #run colourmap1
-DOCLUST: False     #run clustering
-
-SEPSUMSPEC: False #sum class spectra
-SAVEPXSPEC: False #save pixel spectra
-
-DOBG: False      #apply background fitting
-LOWBGADJUST: False    #tweak background for low signal data
-
-SHORTRUN: False  #stop after first X% of pixels
-shortpct: 20     #% of lines to run in short config
-
-CMAP: 'Set1' #default colourmap for clusters
-
-#debug flags
-DEBUG: False     #debug flag (pixels)
-DEBUG2: False    #second-level debug flag (channels)
-
-
-#-----------------------------------
-#VARIABLES
-#-----------------------------------
-
-#chunksize: 104857600   #100 Mb
-#chunksize: 1073741824 #1 Gb
-#chunksize: 2147483648  #2 Gb
-chunksize: 5368709120 #5 Gb
-#chunksize: 10073741824 #10 Gb
-#chunksize: 10737418240
-
-#infile: "geo_nfpy11.GeoPIXE"
-#infile: "geo_ln_chle.GeoPIXE"
-#infile: "geo_dwb12-2.GeoPIXE"
-#infile: "concrete.GeoPIXE"
-#infile:  "converted.GeoPIXE"
-
-#infile:  "geo2.GeoPIXE"    #assign input file
-
-outfile: "pxspec"
-convext: "_sub"
-
-#instrument config
-nclust: 6       #no of clusters
-use_detector: 0
-
-#figure params (currently not used)
-figx: 20         #cm width of figure
-figy: 10         #cm height of figure
-smallfont: 8   #default small font
-medfont: 10    #default medium font
-lgfont: 12     #default large font
-lwidth: 1      #default linewidth
-bwidth: 1      #default border width
-
-#colour flags:
-MIN_E: 1.04      #minimum energy of interest
-MIN_XE: -5       #extended minimum x for ir
-ELASTIC: 17.44   #energy of tube Ka
-EOFFSET: 3.0
-MAX_E: 30        #maximum energy of interest
-SDS: 9           #standard deviations
-RGBLOG: False     #map RGB as log of intensity
-NCOLS: 5         #no. colours
-#these should all be refactored into config, really
-
-#-----------------------------------
-#HARDCODED CONSTANTS (eg. filetype properties)
-#-----------------------------------
-FTYPE: ".GeoPIXE"    #valid: ".GeoPIXE"
-
-PXHEADERLEN: 16  #pixel header size
-PXHEADERMIN: 6
-BYTESPERCHAN: 4
-PXFLAG: 'DP'
-NCHAN: 4096
-ESTEP: 0.01
-CHARENCODE: 'utf-8'
-MBCONV: 1048576 #bytes per Mb
+#SUBMAP
+WRITESUBMAP: True    #write a submap
+submap_x: #x coordinates for writing submap
+  - 0   
+  - 0
+submap_y: #y coordinates for writing submap
+  - 0
+  - 0

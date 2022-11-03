@@ -2,32 +2,65 @@ import time
 import sys
 import os
 import yaml
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 from scipy.stats import norm
 
+
+def getcfgs(f1, f2):
+    """
+    merges two dicts from filenames
+        NB: watch duplicates, f2 will override
+    """    
+    dict1 = readcfg(f1)
+    dict2 = readcfg(f2)
+
+    return {**dict1, **dict2}
+
+
 def readcfg(filename):
-        dir = os.path.realpath(__file__) #_file = current script
+        dir = os.path.realpath(__file__) #_file = current file (ie. utils.py)
         dir=os.path.dirname(dir) 
-        dir=os.path.dirname(dir)        #second call to get src/..
+        dir=os.path.dirname(dir)        #second call to get out of src/..
 
         yamlfile=os.path.join(dir,filename)
 
         with open(yamlfile, "r") as f:
-                return yaml.safe_load(f)
+            return yaml.safe_load(f)
 
-def readargs(config, parser):
 
-    parser.add_argument("-i", "--infile", help="Input file (.GeoPIXE)", type=os.path.abspath)
-    parser.add_argument("-o", "--outdir", help="Output path", type=os.path.abspath)
-    parser.add_argument("-s", "--submap", action='store_true', help="Export submap (.GeoPIXE)")
-    parser.add_argument("-p", "--parse", action='store_true', help="Only export submap")
-    parser.add_argument("-f", "--force", action='store_true', help="Force recalculation of all pixels/classes")
-    parser.add_argument('-c', "--coords", nargs='+', type=int, help="Coordinates for submap as: x1 y1 x2 y2")
+def readargs(pkgconfig, usrconfig):
+    #get the arguments from command line
+    parsed = argparse.ArgumentParser()
 
-    args = parser.parse_args()
+    parsed.add_argument("-c", "--usrconfig", help="User config file (.yaml)", type=os.path.abspath)
+    parsed.add_argument("-i", "--infile", help="Input file (.GeoPIXE)", type=os.path.abspath)
+    parsed.add_argument("-o", "--outdir", help="Output path", type=os.path.abspath)
+    parsed.add_argument("-s", "--submap", action='store_true', help="Export submap (.GeoPIXE)")
+    parsed.add_argument("-p", "--parse", action='store_true', help="Only export submap")
+    parsed.add_argument("-f", "--force", action='store_true', help="Force recalculation of all pixels/classes")
+    parsed.add_argument('-xy', "--coords", nargs='+', type=int, help="Coordinates for submap as: x1 y1 x2 y2")
+    parsed.add_argument('-ch', "--chunksize", nargs='+', type=int, help="Chunk size to load (in Mb)")
 
+    args = parsed.parse_args()
+
+    #if the user config was given as an arg, use it
+    if args.usrconfig is not None:
+        usrconfig = args.usrconfig
+    #otherwise just use the default 
+    else:
+        usrconfig = usrconfig
+    
+    #parse the config files 
+    rawconfig=getcfgs(pkgconfig, usrconfig) 
+
+    #create a working copy
+    config=deepcopy(rawconfig)
+
+    #modify working config based on args
     if args.infile is not None:
         config['infile'] = args.infile
 
@@ -47,6 +80,9 @@ def readargs(config, parser):
         config['FORCERED'] = True
         config['FORCEKMEANS'] = True
 
+    if args.chunksize is not None:
+        config['chunksize'] = args.chunksize
+
     if args.coords is not None:
         config['submap_x1']=args.coords[0]
         config['submap_y1']=args.coords[1]
@@ -56,7 +92,7 @@ def readargs(config, parser):
         if not config['WRITESUBMAP']:
             print("WARNING: submap coordinates set but submap flag False")
 
-    return config, args
+    return config, rawconfig, args
 
 
 def initcfg(config, args):
