@@ -27,12 +27,14 @@ PACKAGE_CONFIG='src/protocol.yaml'
 #INITIALISE
 #-----------------------------------
 
+#get command line arguments
+args = utils.readargs()
+
 #create input config from args and config files
-config, rawconfig, args=utils.readargs(PACKAGE_CONFIG, USER_CONFIG)
+config, rawconfig=utils.initcfg(args, PACKAGE_CONFIG, USER_CONFIG)
 
 #initialise read file and all directories relative to current script
-
-config, fi, fname, fsub, odir = utils.initcfg(config)
+config, fi, fname, fsub, odir = utils.initf(config)
 
 starttime = time.time()             #init timer
 
@@ -55,17 +57,16 @@ pixelseries = obj.PixelSeries(config, xfmap)
 #start a timer
 starttime = time.time() 
 
-#if we are parsing the .GeoPIXE file
-#   begin parsing
-if config['FORCEPARSE']:
-    try:
+try:
+    #if we are parsing the .GeoPIXE file
+    #   begin parsing
+    if config['FORCEPARSE']:
         pixelseries = xfmap.parse(config, pixelseries)
-    finally:
-        xfmap.closefiles()
-#else read from a pre-parsed csv
-else:   
-    pixelseries = pixelseries.readseries(config, odir)
-
+    #else read from a pre-parsed csv
+    else:   
+        pixelseries = pixelseries.readseries(config, odir)
+finally:
+    xfmap.closefiles()
 
 runtime = time.time() - starttime
 

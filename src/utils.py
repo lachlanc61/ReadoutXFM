@@ -32,7 +32,7 @@ def readcfg(filename):
             return yaml.safe_load(f)
 
 
-def readargs(pkgconfig, usrconfig):
+def readargs():
     #get the arguments from command line
     parsed = argparse.ArgumentParser()
 
@@ -46,8 +46,10 @@ def readargs(pkgconfig, usrconfig):
     parsed.add_argument('-y', "--ycoords", nargs='+', type=int, help="Y coordinates for submap as: ystart yend")
     parsed.add_argument('-ch', "--chunksize", nargs='+', type=int, help="Chunk size to load (in Mb)")
 
-    args = parsed.parse_args()
+    return parsed.parse_args()
 
+
+def initcfg(args, pkgconfig, usrconfig):
     #if the user config was given as an arg, use it
     if args.usrconfig is not None:
         usrconfig = args.usrconfig
@@ -113,10 +115,10 @@ def readargs(pkgconfig, usrconfig):
             raise ValueError("FATAL: x2 nonzero but smaller than x1")
         if (config['submap_y'][0] >= config['submap_y'][1]):
             raise ValueError("FATAL: y2 nonzero but smaller than y1")
-    return config, rawconfig, args
+    return config, rawconfig
 
 
-def initcfg(config):
+def initf(config):
 
     script = os.path.realpath(__file__) #_file = current script
     spath=os.path.dirname(script) 
