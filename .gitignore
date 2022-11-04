@@ -4,4 +4,4 @@ data
 # Distribution / packaging
 .venv
 .python-version
-src/__pycache__
+__pycache__/
