@@ -4,11 +4,11 @@ import numpy as np
 import json
 import copy
 
-import src.utils as utils
-import src.colour as colour
-import src.fitting as fitting
-import src.byteops as byteops
-import src.parser as parser
+import xfmreadout.utils as utils
+import xfmreadout.colour as colour
+import xfmreadout.fitting as fitting
+import xfmreadout.byteops as byteops
+import xfmreadout.parser as parser
 
 
 #CLASSES

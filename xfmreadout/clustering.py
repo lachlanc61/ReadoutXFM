@@ -7,7 +7,7 @@ from sklearn import decomposition
 from sklearn.cluster import KMeans
 import umap.umap_ as umap
 
-import src.utils as utils
+import xfmreadout.utils as utils
 
 #-----------------------------------
 #CONSTANTS

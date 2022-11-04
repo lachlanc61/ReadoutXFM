@@ -1,10 +1,10 @@
 import time
 import sys
 import numpy as np
-import src.utils as utils
-import src.colour as colour
-import src.clustering as clustering
-import src.obj as obj
+import xfmreadout.utils as utils
+import xfmreadout.colour as colour
+import xfmreadout.clustering as clustering
+import xfmreadout.obj as obj
 """
 Parses spectrum-by-pixel maps from IXRF XFM
 
@@ -21,7 +21,7 @@ Parses spectrum-by-pixel maps from IXRF XFM
 #vars
 #-----------------------------------
 USER_CONFIG='config.yaml'
-PACKAGE_CONFIG='src/protocol.yaml'
+PACKAGE_CONFIG='xfmreadout/protocol.yaml'
 
 #-----------------------------------
 #INITIALISE
@@ -91,7 +91,7 @@ if not config['PARSEMAP']:
 if config['SAVEPXSPEC']:
     pixelseries.exportseries(config, odir)
 
-#show memory usage    
+#show memory usage
 utils.varsizes(locals().items())
 
 #perform post-analysis:

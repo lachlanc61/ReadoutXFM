@@ -5,7 +5,7 @@ import sys
 
 #from colorsys import hsv_to_rgb
 
-import src.utils as utils
+import xfmreadout.utils as utils
 import matplotlib.pyplot as plt
 
 from matplotlib import cm

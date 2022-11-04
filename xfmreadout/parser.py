@@ -4,7 +4,7 @@ import numpy as np
 import json
 import copy
 
-import src.byteops as byteops
+import xfmreadout.byteops as byteops
 
 
 def readfileheader(config, xfmap):
