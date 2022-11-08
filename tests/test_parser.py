@@ -29,6 +29,7 @@ def xf2map():
     return obj.Xfmap(config, fi, fsub)
 
 #debug hack - not sure how to debug as test, turn it into conventional object rather than fixture for now
+#remove "2" from xf2map above
 xfmap=obj.Xfmap(config, fi, fsub)
 
 
