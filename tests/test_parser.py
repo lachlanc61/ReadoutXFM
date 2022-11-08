@@ -33,10 +33,16 @@ xfmap=obj.Xfmap(config, fi, fsub)
 
 
 def test_getstream(xfmap):
+    """
+    not working yet
+    """
     headstream, xfmap.idx = parser.getstream(xfmap,xfmap.idx,xfmap.PXHEADERLEN)
 
 
 def test_read_pxheader(xfmap):
+    """
+    tests pixel header read
+    """
     expected = [5376, 0, 0, 0, 0.0] #known result from first pixel in test datafile
 
     headstream, xfmap.idx = parser.getstream(xfmap,xfmap.idx,xfmap.PXHEADERLEN)
@@ -47,6 +53,9 @@ def test_read_pxheader(xfmap):
 
 
 def test_read_pxdata(xfmap):
+     """
+    not working yet
+    """
     #exp_chan = readcsv
     #exp_counts = readcsv
     #pxstart=NUM
@@ -59,6 +68,9 @@ def test_read_pxdata(xfmap):
     assert chan, counts == exp_chan, exp_counts
 
 def test_gapfill():
+    """
+    not working yet
+    """
     #in_chan=readcsv
     #in_chan=readcsv
     #exp_chan=readcsv
