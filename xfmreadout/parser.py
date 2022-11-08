@@ -7,7 +7,7 @@ import copy
 import xfmreadout.byteops as byteops
 
 
-def readfileheader(config, xfmap):
+def readfileheader(xfmap):
     print(
         "---------------------------\n"
         f"PARSING HEADER\n"

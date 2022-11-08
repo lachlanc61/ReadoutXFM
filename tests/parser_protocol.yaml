@@ -16,13 +16,6 @@ CMAP: 'Set1' #default colourmap for clusters
 #VARIABLES
 #-----------------------------------
 
-#chunksize: 104857600   #100 Mb
-#chunksize: 1073741824 #1 Gb
-#chunksize: 2147483648  #2 Gb
-#chunksize: 5368709120 #5 Gb
-#chunksize: 10073741824 #10 Gb
-#chunksize: 10737418240
-
 outfile: "pxspec"
 convext: "_sub"
 

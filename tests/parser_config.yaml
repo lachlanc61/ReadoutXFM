@@ -6,7 +6,7 @@
 infile:  
 - "tests/data/subts2.GeoPIXE"
 outdir: 
-- "out/"
+- "tests/out/"
 
 PARSEMAP: True   #load spectrum-by-pixel data
 
