@@ -4,7 +4,7 @@
 #default input file and output directory
 
 infile:  
-- "data/ts2_0.GeoPIXE"   #assign input file
+- "data/geo1.GeoPIXE"   #assign input file
 outdir: 
 - "out/"
 
