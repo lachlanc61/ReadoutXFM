@@ -10,9 +10,9 @@ This package performs dimensionality-reduction and clustering on XFM datasets, p
 
 # Summary:
 
-- parses JSON/binary .GeoPIXE files
+- parses JSON/binary .GeoPIXE files via Xfmap class
 
-- extracts pixel records and pixel parameters
+- extracts pixel records and pixel parameters into PixelSeries class
 
 - projects spectra onto an RGB colourmap for rapid visualisation of the distribution of major phases
 
@@ -29,19 +29,27 @@ The instrument data format is a mixed JSON/binary with sparse pixel records:
   <br />
 </p>
 
-- The JSON header is loaded as a dictionary, yielding map dimensions
-    - (src.bitops.readgpxheader)
+- Config files and optional arguments are read and initialised
+    - (utils.readargs and utils.initcfg)
+- The file and spectrum objects are initialised for parsing
+    - (obj.Xfmap, obj.PixelSeries)
+- The binary file is loaded in a series of chunks 
+    - (parser.getstream and obj.Xfmap.nextchunk)
+- The JSON header is loaded as a dictionary, yielding map dimensions and other parameters
+    - parser.readfileheader
 - Pixel records are parsed and loaded into a large 2D numpy array (shape = pixels * channels) 
-    - (src.bitops.readpxrecord) 
+    - (Xfmap.parse via parser.readpxdata)
     - Pixel parameters are extracted from the indidual pixel headers
-- Any missing channel records are reintroduced as zeroes
-    - (src.utils.gapfill)
-
-#
+        - parser.readpxheader
+    - Any missing channel records are reintroduced as zeroes
+        - (utils.gapfill)
+- If needed, a submap is extracted progressively with the necessary header updates throughtout
+    - (parser.writepxheader and parser.writepxrecord)
+- The fully extracted data is stored in a PixelSeries object for analysis
 
 Single-pixel spectra are mapped to RGB values using the HSV colourmap:
 - Sum of: spectrum intensity * R G B channel values, across spectrum
-    - (src.colour.spectorgb)
+    - (colour.spectorgb)
 
 <p align="left">
   <img src="./docs/IMG/hsv_spectrum2.png" alt="Spectrum" width="700">
@@ -49,7 +57,7 @@ Single-pixel spectra are mapped to RGB values using the HSV colourmap:
 </p>
 
 - An x * y map is created from RGB-values per pixel:
-    - (src.colour.complete) 
+    - (colour.complete) 
 
 <p align="left">
   <img src="./docs/IMG/geo_colours2.png" alt="Spectrum" width="700">
@@ -60,13 +68,13 @@ Single-pixel spectra are mapped to RGB values using the HSV colourmap:
 
 Pixels are categorised, class-averaged and mapped:
 - Perform dimensionality reduction via both PCA and UMAP
-    - (src.clustering.reduce)
+    - (clustering.reduce)
 - Categorise via K-means
-    - (src.clustering.dokmeans)
+    - (clustering.dokmeans)
 - Class averages generated and stored
-    - (src.clustering.complete)
+    - (clustering.complete)
 - Category maps displayed for each reducer
-    - (src.clustering.clustplt)
+    - (clustering.clustplt)
 
 <p align="left">
   <img src="./docs/IMG/geo_clusters.png" alt="Spectrum" width="1024">
@@ -76,8 +84,11 @@ Pixels are categorised, class-averaged and mapped:
 
 # Usage
 
-The tool is run as a script from core.py, or Jupyter notebook explore.ipynb
+The package is executed via core.py
 
-An example dataset is provided in ./data
+Run parameters and desired behaviour are controlled by two config files:
+- User-modifiable flags (eg. input file, output dimensions) are stored in config.yaml
+    - these flags can also be passed in as command line arguments
+- Development flags and tuning parameters are read from xfmreadout/protocol.yaml
 
-The path to the dataset to be analysed is set in config.py, together with various flags and control parameters. 
+An example dataset is provided in ./data/geo1.GeoPIXE
