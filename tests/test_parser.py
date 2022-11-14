@@ -14,7 +14,6 @@ import xfmreadout.parser as parser
 USER_CONFIG=os.path.join(TEST_DIR,'parser_config.yaml')
 PACKAGE_CONFIG=os.path.join(TEST_DIR,'parser_protocol.yaml')
 
-
 #get command line arguments
 args = utils.readargs()
 
@@ -25,19 +24,15 @@ config, rawconfig=utils.initcfg(args, PACKAGE_CONFIG, USER_CONFIG)
 config, fi, fname, fsub, odir = utils.initf(config)
 
 @pytest.fixture
-def xf2map():       
-    return obj.Xfmap(config, fi, fsub)
-
-#debug hack - not sure how to debug as test, turn it into conventional object rather than fixture for now
-#remove "2" from xf2map above
-xfmap=obj.Xfmap(config, fi, fsub)
-
+def xfmap():   
+    map=obj.Xfmap(config, fi, fsub)
+    return map
 
 def test_getstream(xfmap):
     """
     not working yet
     """
-    headstream, xfmap.idx = parser.getstream(xfmap,xfmap.idx,xfmap.PXHEADERLEN)
+    headstream, idx = parser.getstream(xfmap,xfmap.idx,xfmap.PXHEADERLEN)
 
 
 def test_read_pxheader(xfmap):
@@ -46,7 +41,7 @@ def test_read_pxheader(xfmap):
     """
     expected = [5376, 0, 0, 0, 0.0] #known result from first pixel in test datafile
 
-    headstream, xfmap.idx = parser.getstream(xfmap,xfmap.idx,xfmap.PXHEADERLEN)
+    headstream, idx = parser.getstream(xfmap,xfmap.idx,xfmap.PXHEADERLEN)
     pxlen, xidx, yidx, det, dt = parser.readpxheader(headstream, config, xfmap.PXHEADERLEN, xfmap)
     result = [pxlen, xidx, yidx, det, dt]
 
@@ -54,24 +49,23 @@ def test_read_pxheader(xfmap):
 
 
 def test_read_pxdata(xfmap):
-     """
+    """
     not working yet
     """
     #exp_chan = readcsv
-    #exp_counts = readcsv
-    #pxstart=NUM
+    exp_counts = 100
+    pxstart=1411
     readlength=5376-xfmap.PXHEADERLEN
 
-    xfmap.idx = pxstart
-    locstream, xfmap.idx = parser.getstream(xfmap,xfmap.idx,readlength)
+    idx = pxstart
+    locstream, idx = parser.getstream(xfmap,idx,readlength)
     chan, counts = parser.readpxdata(locstream, config, readlength)
     
-    assert chan, counts == exp_chan, exp_counts
+    assert counts == exp_counts
 
+"""
 def test_gapfill():
-    """
-    not working yet
-    """
+
     #in_chan=readcsv
     #in_chan=readcsv
     #exp_chan=readcsv
@@ -79,12 +73,11 @@ def test_gapfill():
 
     chan, counts = utils.gapfill(in_chan,in_counts, config['NCHAN'])
 
-    assert chan, counts == exp_chan, exp_counts
-
+    assert counts == exp_counts
 
 
 test_read_pxheader(xfmap)
-"""
+
 tests:
     pull single pixel from subts2
         -> save in separate file
