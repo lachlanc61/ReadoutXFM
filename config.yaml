@@ -11,7 +11,7 @@ outdir:
 
 PARSEMAP: True   #load spectrum-by-pixel data
 
-chunksize: 100    #size in Mb to load into memory at a time
+chunksize: 10    #size in Mb to load into memory at a time
 
 DOCOLOURS: True   #run colourmap
 DOCLUST: True     #run clustering

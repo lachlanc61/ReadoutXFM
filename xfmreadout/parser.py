@@ -105,12 +105,15 @@ def getstream(xfmap, idx, length):
         locstream=xfmap.stream[idx:idx+length]
         idx=idx+length
     else:   #if step would exceed chunk
-        gotlen=xfmap.streamlen-idx  #store the length already read from this chunk
-
+        #read the remainder of the chunk
         locstream=xfmap.stream[idx:xfmap.streamlen]
+        #store the length read
+        gotlen=xfmap.streamlen-idx  
 
-        xfmap.nextchunk() #load next (resets map.idx)
+        #load next chyunk and update xfmap idx
+        xfmap.nextchunk() 
 
+        #load the remainder of the pixel
         locstream+=xfmap.stream[0:length-gotlen]
 
         idx = length - gotlen
@@ -175,7 +178,8 @@ def readpxdata(locstream, config, readlength):
     #take odd indexes for counts
     counts=chandata[1::2]
 
-    return(chan, counts)
+    #return as lists
+    return(list(chan), list(counts))
 
 def readseries(config, pxseries, odir):
     """
