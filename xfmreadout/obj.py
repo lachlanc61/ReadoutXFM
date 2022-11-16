@@ -42,7 +42,7 @@ class Xfmap:
         self.chunkidx = self.idx
 
         #read the JSON header and move pointer to start of first px record
-        self.idx, self.headerdict = parser.readfileheader(config, self)
+        self.idx, self.headerdict = parser.readfileheader(self)
         
         #try to assign values from header
         try:
@@ -67,8 +67,6 @@ class Xfmap:
         self.numpx = self.xres*self.yres        #expected number of pixels
 
         #init struct for reading pixel headers
-        #self.minstruct=struct.Struct("<ccI")
-        #self.headstruct=struct.Struct("<3Hf")
         self.headstruct=struct.Struct("<ccI3Hf")
         self.PXHEADERLEN=config['PXHEADERLEN'] 
         self.pxlen=self.PXHEADERLEN+config['NCHAN']*4   #dummy value for pxlen
