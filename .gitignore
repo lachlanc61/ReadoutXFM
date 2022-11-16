@@ -1,5 +1,6 @@
 out
 data
+tests/out
 
 # Distribution / packaging
 .venv
