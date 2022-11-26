@@ -8,6 +8,7 @@ import xfmreadout.obj as obj
 """
 Parses spectrum-by-pixel maps from IXRF XFM
 
+
 - parses binary .GeoPIXE files
 - extracts pixel parameters
 - extracts pixel data
